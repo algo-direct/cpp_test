@@ -33,6 +33,14 @@ if(BUILD_MPSC_DEMO)
   install(TARGETS mpsc_demo RUNTIME DESTINATION bin)
 endif()
 
+option(BUILD_MPMC_DEMO "Build the multi-producer multi-consumer demo" ON)
+if(BUILD_MPMC_DEMO)
+	add_executable(mpmc_demo mpmc_demo.cpp)
+	target_compile_features(mpmc_demo PRIVATE cxx_std_23)
+	target_link_libraries(mpmc_demo PRIVATE Threads::Threads)
+	install(TARGETS mpmc_demo RUNTIME DESTINATION bin)
+endif()
+
 # Optional DPDK example
 option(BUILD_DPDK_EXAMPLE "Build the DPDK multicast receive example" OFF)
 # Path to a local DPDK installation root (e.g. /opt/dpdk or /home/ashish/git/dpdk-25.03)
