@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>MPSC queue animation</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    /* Dark theme with high-contrast bright text */
+    body { background: #05070a; color: #ffffff; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 20px; }
+    .controls { margin-bottom: 12px; }
+    button { margin-right: 6px; background:#0b1a22; color:#fff; border:1px solid #12303a; padding:6px 10px; border-radius:4px; }
+    button:hover{ filter:brightness(1.08); }
+    svg { border: 1px solid #122027; background: linear-gradient(180deg,#03060a,#071018); }
+  /* slot colors: lighter fills for better visibility on dark background */
+  .slot { fill: #0b1620; stroke: #22303a; }
+  .slot.busy { fill: #4a3510; }
+  .slot.write { fill: #1a5f34; }
+  .slot.read { fill: #17334a; }
+    .small { font-size: 12px; color: #ffffff; }
+    .info { margin-top: 12px; max-width: 900px; color:#ffffff }
+    pre.small { background:#071018; color:#ffffff }
+    /* SVG text should be bright so it shows on dark background */
+    svg text { fill: #ffffff; }
+    select, input[type=range], input[type=number] { background:#071018; color:#ffffff; border:1px solid #12303a; }
+  </style>
+</head>
+<body>
+  <h2>MPSC queue animation (Vyukov-style)</h2>
+  <p class="small">This interactive visualization shows a bounded ring (power-of-two capacity) where each slot has a sequence number <code>seq</code>. Producers reserve a ticket <code>pos</code>, map it to a slot index using <code>pos & mask</code>, check <code>seq</code>, write when <code>seq == pos</code>, and then publish by storing <code>seq = pos+1</code>. The consumer expects <code>seq == pos+1</code> to read and then frees the slot by storing <code>seq = pos + cap</code>.</p>
+
+  <div class="controls">
+    <button id="play">Play</button>
+    <button id="pause">Pause</button>
+    <button id="step">Step</button>
+    <button id="reset">Reset</button>
+    <button id="snapshot">Save snapshot (PNG)</button>
+    <label class="small">Speed: <input id="speed" type="range" min="100" max="1200" value="600"></label>
+    <label class="small">Capacity: 
+      <select id="capSelect">
+        <option value="4">4</option>
+        <option value="8" selected>8</option>
+        <option value="16">16</option>
+        <option value="32">32</option>
+      </select>
+    </label>
+    <label class="small">Extra producers (wrap amount): <input id="wrapCount" type="number" min="0" max="64" value="10" style="width:80px"></label>
+  </div>
+
+  <svg id="board" width="900" height="220" viewBox="0 0 900 220"></svg>
+
+  <div class="info small">
+    <strong>Legend:</strong>
+    <ul>
+      <li><code>slot[i]</code>: slot index and <code>seq</code></li>
+      <li><code>tail</code>: next producer ticket; <code>head</code>: next consumer ticket</li>
+      <li>Green/write action: producer wrote and published; blue/read action: consumer read and freed slot</li>
+    </ul>
+  </div>
+
+  <div style="margin-top:12px; display:flex; gap:12px; align-items:flex-start;">
+    <div style="flex:1; max-width:640px;">
+      <h4 class="small">Animation</h4>
+      <p class="small">Use Play / Pause / Step / Reset or keyboard: Space = play/pause, RightArrow = step, R = reset.</p>
+    </div>
+    <div style="width:320px;">
+      <h4 class="small">Code (excerpt)</h4>
+      <pre class="small" id="codePanel" style="background:#111; color:#eee; padding:8px; border-radius:6px; max-height:260px; overflow:auto; font-family: monospace; font-size:12px;">
+<span id="code-prod-check">// producer checks slot: long long dif = (long long)seq - (long long)pos; if (dif == 0) { /* slot is ours */ }</span>
+<span id="code-prod-publish">// after write: cell.seq.store(pos + 1, std::memory_order_release);</span>
+<span id="code-cons-check">// consumer expects: long long dif = (long long)seq - (long long)(pos + 1); if (dif == 0) { /* read */ }</span>
+<span id="code-cons-free">// after read: cell.seq.store(pos + cap_, std::memory_order_release);</span>
+      </pre>
+    </div>
+  </div>
+
+  <script>
+  // Simulation parameters (defaults)
+  let cap = 8; // power-of-two capacity (visual example)
+  let mask = cap - 1;
+
+  // Internal model: slots with seq and optional value
+  let slots = [];
+  let tail = 0; // next producer ticket
+  let head = 0; // next consumer ticket
+
+  // Animation state
+  let timeline = []; // array of actions
+  let playTimer = null;
+  let speed = 600;
+
+  function initModel() {
+    slots = [];
+    for (let i = 0; i < cap; ++i) {
+      slots.push({ seq: i, val: null, state: 'idle' });
+    }
+    tail = 0;
+    head = 0;
+    timeline = [];
+  }
+
+  // Actions: pushProducer(n) schedules n producer operations; consumer consumes when scheduled.
+  function scheduleScenario() {
+    timeline = [];
+    // Example: a couple of producers, a consumer, then many producers to force wrap-around
+    timeline.push({type: 'prod', id: 'A'});
+    timeline.push({type: 'prod', id: 'B'});
+    timeline.push({type: 'cons'});
+    // add a configurable number of producers to force wrap
+    const extra = Number(document.getElementById('wrapCount').value) || (cap + 2);
+    for (let i = 0; i < extra; ++i) timeline.push({type: 'prod', id: 'P'+i});
+    timeline.push({type: 'cons'});
+    timeline.push({type: 'cons'});
+  }
+
+  // Highlight code panel spans briefly
+  function highlightCode(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prev = el.style.background;
+    el.style.background = 'linear-gradient(90deg,#252 0%, #0a0 100%)';
+    el.style.color = '#fff';
+    setTimeout(()=>{ el.style.background = prev; el.style.color = ''; }, 500);
+  }
+
+  function stepAction(act) {
+    if (!act) return;
+    if (act.type === 'prod') {
+      // reservation
+      const pos = tail++;
+      const idx = pos & mask;
+      const cell = slots[idx];
+      const seq = cell.seq;
+      const dif = seq - pos;
+      if (dif === 0) {
+        // write
+        cell.val = act.id;
+        cell.state = 'write';
+        cell.seq = pos + 1; // publish
+        highlightCode('code-prod-publish');
+      } else {
+        // busy/blocked: we mark busy for a moment
+        cell.state = 'busy';
+        highlightCode('code-prod-check');
+      }
+    } else if (act.type === 'cons') {
+      const pos = head++;
+      const idx = pos & mask;
+      const cell = slots[idx];
+      const seq = cell.seq;
+      const dif = seq - (pos + 1);
+      if (dif === 0) {
+        // read
+        cell.state = 'read';
+        cell.val = null;
+        cell.seq = pos + cap; // free for next lap
+        highlightCode('code-cons-free');
+      } else {
+        cell.state = 'busy';
+        highlightCode('code-cons-check');
+      }
+    }
+  }
+
+  // Rendering
+  const svg = document.getElementById('board');
+  const W = 900, H = 220;
+  function render() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const margin = 20;
+    const slotW = (W - 2*margin) / cap - 8;
+    for (let i = 0; i < cap; ++i) {
+      const x = margin + i*(slotW + 8);
+      const y = 40;
+      const cell = slots[i];
+      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      rect.setAttribute('x', x);
+      rect.setAttribute('y', y);
+      rect.setAttribute('width', slotW);
+      rect.setAttribute('height', 80);
+      rect.setAttribute('rx', 6);
+      rect.setAttribute('ry', 6);
+      rect.setAttribute('class', 'slot');
+      if (cell.state === 'busy') rect.setAttribute('class','slot busy');
+      if (cell.state === 'write') rect.setAttribute('class','slot write');
+      if (cell.state === 'read') rect.setAttribute('class','slot read');
+      g.appendChild(rect);
+
+      const idxText = document.createElementNS('http://www.w3.org/2000/svg','text');
+      idxText.setAttribute('x', x + 8);
+      idxText.setAttribute('y', y + 20);
+      idxText.setAttribute('font-size', '12');
+      idxText.textContent = `slot ${i}`;
+      g.appendChild(idxText);
+
+      const seqText = document.createElementNS('http://www.w3.org/2000/svg','text');
+      seqText.setAttribute('x', x + 8);
+      seqText.setAttribute('y', y + 40);
+      seqText.setAttribute('font-size', '12');
+      seqText.textContent = `seq = ${cell.seq}`;
+      g.appendChild(seqText);
+
+      const valText = document.createElementNS('http://www.w3.org/2000/svg','text');
+      valText.setAttribute('x', x + 8);
+      valText.setAttribute('y', y + 60);
+      valText.setAttribute('font-size', '12');
+      valText.textContent = `val = ${cell.val === null ? '.' : cell.val}`;
+      g.appendChild(valText);
+
+      svg.appendChild(g);
+    }
+
+    // tail/head info
+    const info = document.createElementNS('http://www.w3.org/2000/svg','text');
+    info.setAttribute('x', 20);
+    info.setAttribute('y', 160);
+    info.setAttribute('font-size', '14');
+    info.textContent = `tail (next ticket) = ${tail}   head (next ticket) = ${head}   mask = ${mask}   cap = ${cap}`;
+    svg.appendChild(info);
+  }
+
+  // Playback controls
+  let idx = 0;
+  function play() {
+    if (playTimer) return;
+    playTimer = setInterval(()=>{
+      if (idx >= timeline.length) { pause(); return; }
+      stepAction(timeline[idx++]);
+      render();
+    }, speed);
+  }
+  function pause() { clearInterval(playTimer); playTimer = null; }
+  function step() { if (idx < timeline.length) { stepAction(timeline[idx++]); render(); } }
+  function reset() { pause(); initModel(); scheduleScenario(); idx = 0; render(); }
+
+  // snapshot: download current SVG as PNG
+  function downloadPNG(filename) {
+    const svgEl = document.getElementById('board');
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width = svgEl.clientWidth;
+      canvas.height = svgEl.clientHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(function(blob) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename || 'mpsc_snapshot.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+    };
+    img.onerror = function() { URL.revokeObjectURL(url); alert('Failed to convert SVG to image'); };
+    img.src = url;
+  }
+
+  // Wire up UI
+  document.getElementById('play').addEventListener('click', ()=>play());
+  document.getElementById('pause').addEventListener('click', ()=>pause());
+  document.getElementById('step').addEventListener('click', ()=>step());
+  document.getElementById('reset').addEventListener('click', ()=>reset());
+  document.getElementById('speed').addEventListener('input', (e)=>{ speed = Number(e.target.value); if (playTimer) { pause(); play(); } });
+  document.getElementById('snapshot').addEventListener('click', ()=>downloadPNG('mpsc_snapshot.png'));
+  document.getElementById('capSelect').addEventListener('change', (e)=>{
+    cap = Number(e.target.value);
+    mask = cap - 1;
+    reset();
+  });
+  document.getElementById('wrapCount').addEventListener('change', ()=>{ reset(); });
+
+  // Keyboard shortcuts: Space = play/pause, Right = step, R = reset
+  window.addEventListener('keydown', (ev)=>{
+    if (ev.code === 'Space') { ev.preventDefault(); if (playTimer) pause(); else play(); }
+    else if (ev.code === 'ArrowRight') { ev.preventDefault(); step(); }
+    else if (ev.key === 'r' || ev.key === 'R') { ev.preventDefault(); reset(); }
+  });
+
+  // initialize
+  initModel();
+  scheduleScenario();
+  render();
+
+  </script>
+</body>
+</html>

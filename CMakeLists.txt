@@ -5,6 +5,9 @@ project(cpp_test LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Threads for std::thread
+find_package(Threads REQUIRED)
+
 add_executable(myapp main.cpp)
 
 add_executable(hello hello.cpp)
@@ -12,6 +15,23 @@ add_executable(hello hello.cpp)
 install(TARGETS myapp RUNTIME DESTINATION bin)
 install(TARGETS hello
 	RUNTIME DESTINATION bin)
+
+# SPSC demo
+option(BUILD_SPSC_DEMO "Build the single-producer/single-consumer demo" ON)
+if(BUILD_SPSC_DEMO)
+	add_executable(spsc_demo spsc_demo.cpp)
+	target_compile_features(spsc_demo PRIVATE cxx_std_23)
+	target_link_libraries(spsc_demo PRIVATE Threads::Threads)
+	install(TARGETS spsc_demo RUNTIME DESTINATION bin)
+endif()
+
+option(BUILD_MPSC_DEMO "Build the multi-producer single-consumer demo" ON)
+if(BUILD_MPSC_DEMO)
+  add_executable(mpsc_demo mpsc_demo.cpp)
+  target_compile_features(mpsc_demo PRIVATE cxx_std_23)
+  target_link_libraries(mpsc_demo PRIVATE Threads::Threads)
+  install(TARGETS mpsc_demo RUNTIME DESTINATION bin)
+endif()
 
 # Optional DPDK example
 option(BUILD_DPDK_EXAMPLE "Build the DPDK multicast receive example" OFF)
