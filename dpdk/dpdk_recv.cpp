@@ -1,6 +1,7 @@
 #include <rte_eal.h>
 #include <rte_ethdev.h>
 #include <rte_mbuf.h>
+#include <rte_ether.h>
 
 #include <getopt.h>
 #include <arpa/inet.h>
@@ -29,8 +30,8 @@ int main(int argc, char** argv)
 {
     // Default application options (these are parsed after EAL init)
     uint16_t app_port = 0; // default to first port
-    std::string target_ip_str = "226.0.0.100";
-    uint32_t target_ip = RTE_IPV4(226,0,0,100);
+    std::string target_ip_str = "224.0.0.100";
+    uint32_t target_ip = RTE_IPV4(224,0,0,100);
     uint16_t target_port = 40000;
     bool enable_promisc = true;
 
@@ -115,6 +116,32 @@ int main(int argc, char** argv)
         // optionally enable all-multicast if requested via other flags; here we can leave as default
     }
 
+    // Program multicast MAC derived from target_ip so the NIC accepts that multicast address only
+    rte_eth_promiscuous_disable(port_id);
+    uint32_t ip_host = target_ip; // parse_ipv4_addr returned host-order
+    if ((ip_host & 0xF0000000u) != 0xE0000000u) {
+        std::cerr << "Warning: target IP " << target_ip_str << " is not an IPv4 multicast address (224.0.0.0/4)." << std::endl;
+    } else {
+        struct rte_ether_addr mc;
+        uint32_t lower23 = ip_host & 0x7FFFFFu; // lower 23 bits
+        mc.addr_bytes[0] = 0x01;
+        mc.addr_bytes[1] = 0x00;
+        mc.addr_bytes[2] = 0x5e;
+        mc.addr_bytes[3] = (uint8_t)((lower23 >> 16) & 0x7Fu);
+        mc.addr_bytes[4] = (uint8_t)((lower23 >> 8) & 0xFFu);
+        mc.addr_bytes[5] = (uint8_t)(lower23 & 0xFFu);
+
+        int rc = rte_eth_dev_set_mc_addr_list(port_id, &mc, 1);
+        if (rc != 0) {
+            std::cerr << "Warning: failed to set multicast MAC on port " << port_id << " (rc=" << rc << ")." << std::endl;
+        } else {
+            char macbuf[64];
+            snprintf(macbuf, sizeof(macbuf), "%02x:%02x:%02x:%02x:%02x:%02x",
+                mc.addr_bytes[0], mc.addr_bytes[1], mc.addr_bytes[2], mc.addr_bytes[3], mc.addr_bytes[4], mc.addr_bytes[5]);
+            std::cout << "Programmed multicast MAC " << macbuf << " on port " << port_id << std::endl;
+        }
+    }
+
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
@@ -145,7 +172,7 @@ int main(int argc, char** argv)
                     uint32_t dst = (ip[16] << 24) | (ip[17] << 16) | (ip[18] << 8) | ip[19];
                     if (proto == 17 && dst == rte_be_to_cpu_32(target_ip)) { // UDP
                         unsigned char* udp = ip + ihl;
-                        uint16_t dst_port = (udp[2] << 8) | udp[3];
+                        uint16_t dst_port = rte_be_to_cpu_16(*(uint16_t*)(udp + 2)); // beware unaligned access on some CPUs
                         if (dst_port == target_port) {
                             ++matched;
                             std::cout << "matched pkt len=" << pkt_len << " total=" << total << " matched=" << matched << std::endl;

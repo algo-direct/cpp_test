@@ -1,6 +1,6 @@
 DPDK multicast receive example
 
-This folder contains a minimal DPDK example (`dpdk_recv`) which initializes the EAL, starts the first available port in promiscuous mode and prints a simple message when it receives IPv4/UDP packets destined to 226.0.0.100:40000.
+This folder contains a minimal DPDK example (`dpdk_recv`) which initializes the EAL, starts the first available port and programs the NIC to accept the multicast Ethernet address derived from the configured IPv4 multicast address. It prints a simple message when it receives IPv4/UDP packets destined to 224.0.0.100:40000 by default.
 
 Building
 
@@ -26,7 +26,8 @@ DPDK apps usually need root privileges, hugepages mounted, and NICs bound to a D
 
 ```bash
 # example: use 1 core, no hugepage setup in this doc (user must prepare hugepages)
-sudo ./build/dpdk_recv -- -l 0
+# program listens for 224.0.0.100:40000 by default; pass --target-ip/--target-port to change
+sudo ./build/dpdk_recv -l 0 -- -p 0 --target-ip 224.0.0.100 --target-port 40000
 ```
 
 If you haven't bound your NIC to a DPDK driver, you can still try running with `--vdev=net_pcap0,iface=eth0` (pcap PMD) for testing but performance will differ and pcap must be available.
@@ -45,9 +46,9 @@ If you haven't bound your NIC to a DPDK driver, you can still try running with `
 The script will try to locate `dpdk-devbind.py` under the DPDK root (for example `/home/ashish/git/dpdk-25.03/usertools/dpdk-devbind.py`) or common system locations.
 Notes
 
-- The example enables promiscuous mode so multicast packets will be received even if the NIC is not explicitly configured for the multicast MAC.
+- The example programs the multicast MAC derived from the target IPv4 so the NIC only receives that multicast address (promiscuous mode is not required by default). Some PMDs or drivers may not support programming multicast MAC lists; in that case you'll see a warning and may need to use a native PMD or fall back to promiscuous or all-multicast for testing.
 - This code is intentionally minimal and focuses on packet receive and simple parsing; in production you should add proper error handling, port selection, multi-queue support, and NUMA-aware mempool placement.
-- To receive real multicast traffic, ensure the sender is transmitting to 226.0.0.100:40000 and the NIC/network path allows multicast.
+-- To receive real multicast traffic, ensure the sender is transmitting to 224.0.0.100:40000 and the NIC/network path allows multicast.
 
 Troubleshooting
 
