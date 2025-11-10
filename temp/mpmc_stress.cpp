@@ -1,22 +1,16 @@
-// Michael & Scott lock-free MPMC queue (linked-list based)
-// Note: This is a standard lock-free algorithm for multiple producers and consumers.
-// Memory reclamation: nodes are deleted by the consumer that advances the head, which
-// is safe in the M&S algorithm once head is moved.
-
-#include <atomic>
-#include <cassert>
-#include <cstdlib>
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <atomic>
 #include <chrono>
 
 #include "mpmc_queue_ms.h"
+#include <mutex>
 
-int main() {
+int main(int argc, char** argv) {
     const int producers = 4;
     const int consumers = 4;
-    const int per_producer = 50000; // items per producer
+    const int per_producer = 50000;
     const int total = producers * per_producer;
 
     MPMCQueue<int> q;
@@ -41,6 +35,8 @@ int main() {
 
     // Consumers
     std::vector<std::thread> cts;
+    std::vector<char> seen(total + 1, 0);
+    std::mutex seen_mtx;
     for (int c = 0; c < consumers; ++c) {
         cts.emplace_back([&]() {
             int local_count = 0;
@@ -51,6 +47,16 @@ int main() {
                     ++local_count;
                     local_sum += v;
                     consumed.fetch_add(1, std::memory_order_relaxed);
+                    // record and detect duplicates/missing
+                    if (v >= 1 && v <= total) {
+                        std::lock_guard<std::mutex> lk(seen_mtx);
+                        if (seen[v]) {
+                            std::cerr << "Duplicate value observed: " << v << "\n";
+                        }
+                        seen[v] = 1;
+                    } else {
+                        std::cerr << "Out-of-range value: " << v << "\n";
+                    }
                 } else {
                     std::this_thread::yield();
                 }
@@ -62,7 +68,6 @@ int main() {
     for (auto &t : pts) t.join();
     for (auto &t : cts) t.join();
 
-    // Validate
     long long prod = sum_produced.load();
     long long cons = sum_consumed.load();
     if (produced != total) {
@@ -78,6 +83,6 @@ int main() {
         return 4;
     }
 
-    std::cout << "mpmc_queue_ms: PASS (items=" << total << ", sum=" << prod << ")\n";
+    std::cout << "mpmc_stress: PASS (items=" << total << ", sum=" << prod << ")\n";
     return 0;
 }
