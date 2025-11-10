@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MPMC Queue Animation</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; margin: 16px; }
+    .controls { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+    label { font-size:14px; }
+    input[type=number] { width:90px; }
+    .layout { display:flex; gap:12px; }
+    canvas { border:1px solid #ccc; background:#fff; display:block; }
+    .sidebar { width:340px; }
+    .status { margin-top:12px; font-size:14px; }
+    .btn { padding:6px 10px; border-radius:4px; border:1px solid #888; background:#f1f1f1; cursor:pointer; }
+    .btn:active { transform: translateY(1px); }
+    .small { font-size:13px; }
+    .legend { margin-bottom:8px; }
+    .legend-item { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+    .color-box { width:16px; height:12px; border:1px solid #666; }
+    .log { max-height:340px; overflow:auto; background:#111; color:#0f0; padding:8px; font-family:monospace; font-size:12px; border-radius:4px; }
+    .last-action { margin-top:8px; padding:8px; background:#f6f6f6; border-radius:4px; font-size:13px; }
+  </style>
+</head>
+<body>
+  <h2>MPMC Queue Animation</h2>
+  <div class="controls">
+    <label>Capacity: <input id="capacity" type="number" min="2" value="32"></label>
+    <label>Producers: <input id="producers" type="number" min="1" value="4"></label>
+    <label>Consumers: <input id="consumers" type="number" min="1" value="3"></label>
+    <label>Per-producer: <input id="perProducer" type="number" min="1" value="50"></label>
+    <label><input id="autoplay" type="checkbox" checked> Autoplay</label>
+    <label>Speed: <input id="speed" type="range" min="1" max="200" value="60"></label>
+  <button id="stepBtn" class="btn">Step</button>
+    <button id="resetBtn" class="btn">Reset</button>
+    <button id="runBtn" class="btn">Run to completion</button>
+  <button id="prevEvent" class="btn">◀ Prev</button>
+  <button id="nextEvent" class="btn">Next ▶</button>
+  <button id="playTimeline" class="btn">Play Timeline ▶</button>
+  <label style="display:flex;align-items:center;gap:8px">Event: <input id="eventSlider" type="range" min="0" value="0" style="width:220px"></label>
+  <button id="replayToggle" class="btn">Enter Replay Mode</button>
+  <button id="debugToggle" class="btn small">Show Debug</button>
+  <button id="exportJson" class="btn small">Export Events JSON</button>
+    <button id="recordBtn" class="btn">Start Recording</button>
+    <button id="downloadWebm" class="btn small">Download WebM</button>
+    <button id="convertMp4" class="btn small">Convert → MP4</button>
+  </div>
+
+  <div class="layout">
+    <canvas id="canvas" width="920" height="520"></canvas>
+    <div class="sidebar">
+      <div class="legend" id="legend"></div>
+      <div class="last-action" id="lastAction">No actions yet</div>
+      <div style="height:12px"></div>
+      <div class="log" id="eventLog"></div>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <p class="small">Notes: Recording captures the canvas area and produces a WebM file. Converting to MP4 uses ffmpeg.wasm in the browser and may be slow.</p>
+
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+  <script>
+  // Utility: next power of two
+  function nextPow2(v) {
+    let n = 1;
+    while (n < v) n <<= 1;
+    return n;
+  }
+
+  // Simple in-page simulation of Vyukov MPMC queue (single-threaded animation)
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const status = document.getElementById('status');
+  const eventLogEl = document.getElementById('eventLog');
+  const legendEl = document.getElementById('legend');
+  const lastActionEl = document.getElementById('lastAction');
+
+  let cfg = {};
+  let state = {};
+  let running = false;
+  let recorder = null;
+  let recordedChunks = [];
+  let debugOn = false;
+  let dragStart = null; // for dragging overlay
+
+  function initConfigFromUi() {
+    const capIn = parseInt(document.getElementById('capacity').value, 10) || 32;
+    cfg.capacity = nextPow2(Math.max(2, capIn));
+    cfg.producers = Math.max(1, parseInt(document.getElementById('producers').value, 10) || 1);
+    cfg.consumers = Math.max(1, parseInt(document.getElementById('consumers').value, 10) || 1);
+    cfg.perProducer = Math.max(1, parseInt(document.getElementById('perProducer').value, 10) || 50);
+    cfg.autoplay = document.getElementById('autoplay').checked;
+    cfg.speed = parseInt(document.getElementById('speed').value, 10) || 60;
+  }
+
+  function resetState() {
+    state.cap = cfg.capacity;
+    state.mask = state.cap - 1;
+    state.cells = new Array(state.cap).fill(null).map((_, i) => ({ seq: i, val: null }));
+    state.head = 0;
+    state.tail = 0;
+    state.producers = new Array(cfg.producers).fill(0).map((_, p) => ({ id: p, remaining: cfg.perProducer, base: p * cfg.perProducer }));
+    state.consumers = new Array(cfg.consumers).fill(0).map((_, c) => ({ id: c }));
+    state.produced = 0;
+    state.consumed = 0;
+    state.steps = 0;
+    state.done = false;
+    state.log = [];
+  state.events = []; // event objects: {type, step, pid, cid, pos, val}
+  // timeline arrays for snapshots (head/tail/produced/consumed per event index)
+  state.timeline = { head: [], tail: [], produced: [], consumed: [] };
+    state.producerColors = new Array(cfg.producers).fill(0).map((_,i)=>{
+      const hue = Math.floor((i*73) % 360);
+      return `hsl(${hue} 70% 50%)`;
+    });
+    // initialize display/interpolated values so head/tail show correctly on startup
+    state.displayHead = state.head;
+    state.displayTail = state.tail;
+    state.displayProduced = state.produced;
+    state.displayConsumed = state.consumed;
+    // reset playback indices
+    replayIndex = 0;
+    playIndex = 0.0;
+    if (slider) { slider.value = 0; slider.max = 0; }
+    if (eventLogEl) eventLogEl.textContent = '';
+    // debug overlay position and dragging state
+    state.debugBox = { x: canvas.width - 330, y: 12 };
+    state.debugDragging = false;
+    renderLegend();
+  }
+
+  function renderLegend() {
+    legendEl.innerHTML = '';
+    for (let i = 0; i < cfg.producers; ++i) {
+      const div = document.createElement('div');
+      div.className = 'legend-item';
+      const colorBox = document.createElement('div'); colorBox.className='color-box'; colorBox.style.background = state.producerColors[i];
+      div.appendChild(colorBox);
+      const txt = document.createElement('div'); txt.textContent = `Producer ${i}`;
+      div.appendChild(txt);
+      legendEl.appendChild(div);
+    }
+  }
+
+  function render() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const w = canvas.width; const h = canvas.height;
+    // draw cells
+    const cols = Math.min(state.cap, 50);
+    const cellW = Math.floor((w - 40) / cols);
+    const cellH = 80;
+    const startX = 20;
+    const y = 40;
+    for (let i = 0; i < state.cap; ++i) {
+      const x = startX + (i % cols) * cellW;
+      // highlight if recent event touches this cell
+      const cell = state.cells[i];
+      let baseBg = '#fafafa';
+      // check for recent events touching this pos
+      for (const ev of state.events) {
+        const dt = state.steps - ev.step;
+        if (dt >= 0 && dt < 10 && ev.pos % state.cap === i) {
+          // animate highlight fading over 10 steps
+          const alpha = 1 - (dt / 10);
+          if (ev.type === 'enq') baseBg = `rgba(0,150,0,${0.18 + 0.6*alpha})`;
+          else baseBg = `rgba(150,0,0,${0.18 + 0.6*alpha})`;
+        }
+      }
+      ctx.fillStyle = baseBg;
+      ctx.fillRect(x+2, y+2, cellW-4, cellH-4);
+      ctx.strokeStyle = '#888';
+      ctx.strokeRect(x+2, y+2, cellW-4, cellH-4);
+      ctx.fillStyle = '#222';
+      ctx.font = '12px monospace';
+      ctx.fillText('i=' + i, x+6, y+18);
+      ctx.fillText('seq=' + cell.seq, x+6, y+34);
+      ctx.fillText(cell.val === null ? '-' : String(cell.val), x+6, y+54);
+    }
+    // draw producers at top with colored circles
+    const pY = 12;
+    const producerSpacing = Math.max(40, (canvas.width - 40) / Math.max(1,cfg.producers));
+    for (let p = 0; p < cfg.producers; ++p) {
+      const px = 20 + p * producerSpacing;
+      ctx.beginPath(); ctx.fillStyle = state.producerColors[p]; ctx.arc(px+6, pY, 8, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000'; ctx.font='12px sans-serif'; ctx.fillText('P' + p, px+16, pY+4);
+    }
+    // draw consumers at bottom with grey circles
+    const cY = y + cellH + 120;
+    const consumerSpacing = Math.max(40, (canvas.width - 40) / Math.max(1,cfg.consumers));
+    for (let c = 0; c < cfg.consumers; ++c) {
+      const cx = 20 + c * consumerSpacing;
+      ctx.beginPath(); ctx.fillStyle = '#666'; ctx.arc(cx+6, cY, 8, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000'; ctx.font='12px sans-serif'; ctx.fillText('C' + c, cx+16, cY+4);
+    }
+
+    // draw animated arrows for recent events
+    for (const ev of state.events) {
+      const dt = state.steps - ev.step;
+      if (dt < 0 || dt > 12) continue;
+      const t = Math.max(0, 1 - (dt / 12));
+      const cellIdx = ev.pos & state.mask;
+      const cellX = startX + (cellIdx % cols) * cellW + (cellW/2);
+      const cellY = y + (cellH/2);
+      if (ev.type === 'enq') {
+        const pX = 20 + ev.pid * producerSpacing + 6;
+        const pYc = pY;
+        ctx.strokeStyle = state.producerColors[ev.pid]; ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.25 + 0.75*t;
+        ctx.beginPath(); ctx.moveTo(pX, pYc); ctx.quadraticCurveTo((pX+cellX)/2, pYc-30*(1-t), cellX, cellY-10); ctx.stroke();
+        ctx.globalAlpha = 1.0;
+      } else {
+        // dequeue: arrow from cell to consumer (pick consumer by mod)
+        const cid = ev.cid ?? (ev.step % cfg.consumers);
+        const cX = 20 + cid * consumerSpacing + 6;
+        const cYc = cY;
+        ctx.strokeStyle = 'rgba(160,0,0,1)'; ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.25 + 0.75*t;
+        ctx.beginPath(); ctx.moveTo(cellX, cellY+10); ctx.quadraticCurveTo((cX+cellX)/2, cYc+30*(1-t), cX, cYc); ctx.stroke();
+        ctx.globalAlpha = 1.0;
+      }
+    }
+  // head/tail indicators (smooth displayed positions)
+  state.displayHead = (state.displayHead ?? state.head) + (state.head - (state.displayHead ?? state.head)) * 0.25;
+  state.displayTail = (state.displayTail ?? state.tail) + (state.tail - (state.displayTail ?? state.tail)) * 0.25;
+  const headPos = Math.floor(state.displayHead) & state.mask;
+  const tailPos = Math.floor(state.displayTail) & state.mask;
+  ctx.fillStyle = 'rgba(0,128,0,0.12)';
+  const headX = startX + (headPos % cols) * cellW;
+  ctx.fillRect(headX+2, y+cellH+6, cellW-4, 18);
+  ctx.fillStyle = 'rgba(0,128,0,1)'; ctx.fillText('HEAD ' + Math.floor(state.displayHead), headX+6, y+cellH+19);
+  ctx.fillStyle = 'rgba(128,0,0,0.12)';
+  const tailX = startX + (tailPos % cols) * cellW;
+  ctx.fillRect(tailX+2, y+cellH+32, cellW-4, 18);
+  ctx.fillStyle = 'rgba(128,0,0,1)'; ctx.fillText('TAIL ' + Math.floor(state.displayTail), tailX+6, y+cellH+45);
+
+  // status with animated numbers
+  state.displayProduced = (state.displayProduced ?? state.produced) + (state.produced - (state.displayProduced ?? state.produced)) * 0.2;
+  state.displayConsumed = (state.displayConsumed ?? state.consumed) + (state.consumed - (state.displayConsumed ?? state.consumed)) * 0.2;
+  ctx.fillStyle = '#000'; ctx.font='14px sans-serif';
+  ctx.fillText('Produced: ' + Math.floor(state.displayProduced) + '   Consumed: ' + Math.floor(state.displayConsumed) + '   Steps: ' + state.steps, 20, h-20);
+
+  // debug overlay
+  if (debugOn) {
+    const lines = [];
+    lines.push(`state.head=${state.head} state.tail=${state.tail} displayHead=${(state.displayHead||0).toFixed(2)} displayTail=${(state.displayTail||0).toFixed(2)}`);
+    lines.push(`produced=${state.produced} consumed=${state.consumed} displayP=${Math.floor(state.displayProduced)} displayC=${Math.floor(state.displayConsumed)}`);
+    lines.push(`events=${state.events.length} timelineLen=${state.timeline.head.length}`);
+    lines.push(`cap=${state.cap} mask=${state.mask} steps=${state.steps}`);
+    // last event details and occupancy estimate
+    const lastEv = state.events.length ? state.events[state.events.length - 1] : null;
+    if (lastEv) lines.push(`last=${lastEv.type} pos=${lastEv.pos} val=${lastEv.val} pid=${lastEv.pid ?? lastEv.cid ?? '-'} step=${lastEv.step}`);
+    const occupancy = state.produced - state.consumed;
+    lines.push(`occupancy≈${occupancy}`);
+    // draw background box at debugBox position
+    const bx = state.debugBox.x; const by = state.debugBox.y; const bw = 300; const bh = lines.length * 18 + 12;
+    ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(bx, by, bw, bh);
+    // draw a header handle for dragging
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(bx, by, bw, 18);
+    ctx.strokeStyle = '#666'; ctx.strokeRect(bx, by, bw, bh);
+    ctx.fillStyle = '#0f0'; ctx.font='12px monospace';
+    for (let i = 0; i < lines.length; ++i) {
+      ctx.fillText(lines[i], bx + 8, by + 18 + i * 18);
+    }
+    // draw drag indicator
+    ctx.fillStyle = '#888'; ctx.font='10px sans-serif'; ctx.fillText('drag', bx + bw - 38, by + 12);
+  }
+
+    // update textual log UI
+    const recent = state.log.slice(-200).reverse();
+    eventLogEl.textContent = recent.join('\n');
+    lastActionEl.textContent = (state.log.length ? state.log[state.log.length-1] : 'No actions yet');
+  }
+
+  // Single animation step: pick a random producer or consumer to attempt an operation
+  function step() {
+    if (state.done) return;
+    state.steps++;
+    // Randomly pick between producing and consuming, weighted by remaining work
+    const producersWithWork = state.producers.filter(p => p.remaining > 0);
+    const canConsume = state.consumed < cfg.perProducer * cfg.producers;
+    const doProduce = (producersWithWork.length > 0) && (Math.random() < 0.6 || !canConsume);
+    if (doProduce) {
+      // try to enqueue from a random producer that has work
+      const p = producersWithWork[Math.floor(Math.random()*producersWithWork.length)];
+      const pos = state.tail;
+      const cell = state.cells[pos & state.mask];
+      if (cell.seq === pos) {
+        // write
+        const v = p.base + (cfg.perProducer - p.remaining) + 1;
+        cell.val = v;
+        cell.seq = pos + 1;
+        state.tail++;
+        p.remaining--;
+        state.produced++;
+        const msg = `P${p.id} enq ${v} @${pos}`;
+        state.log.push(msg);
+        state.events.push({ type:'enq', step: state.steps, pid: p.id, pos: pos, val: v });
+        // record timeline snapshot
+        state.timeline.head.push(state.head);
+        state.timeline.tail.push(state.tail);
+        state.timeline.produced.push(state.produced);
+        state.timeline.consumed.push(state.consumed);
+        if (state.events.length > 300) {
+          state.events.shift();
+          // keep timelines consistent (drop from front)
+          state.timeline.head.shift(); state.timeline.tail.shift(); state.timeline.produced.shift(); state.timeline.consumed.shift();
+        }
+      } else {
+        // can't enqueue, backoff
+      }
+    } else {
+      // try to dequeue
+      const pos = state.head;
+      const cell = state.cells[pos & state.mask];
+      if (cell.seq === pos + 1) {
+        const v = cell.val;
+        cell.val = null;
+        cell.seq = pos + state.cap;
+        state.head++;
+        state.consumed++;
+        const msg = `C deq ${v} @${pos}`;
+        state.log.push(msg);
+        // pick a consumer id for visualization (round-robin)
+        const cid = state.steps % cfg.consumers;
+        state.events.push({ type:'deq', step: state.steps, cid: cid, pos: pos, val: v });
+        // record timeline snapshot
+        state.timeline.head.push(state.head);
+        state.timeline.tail.push(state.tail);
+        state.timeline.produced.push(state.produced);
+        state.timeline.consumed.push(state.consumed);
+        if (state.events.length > 300) {
+          state.events.shift();
+          state.timeline.head.shift(); state.timeline.tail.shift(); state.timeline.produced.shift(); state.timeline.consumed.shift();
+        }
+      } else {
+        // can't dequeue
+      }
+    }
+
+    // termination
+    if (state.produced >= cfg.perProducer * cfg.producers && state.consumed >= cfg.perProducer * cfg.producers) {
+      state.done = true;
+    }
+  }
+
+  let rafId = null;
+  // replay state
+  let replayMode = false;
+  let replayIndex = 0; // index into state.events (0..len)
+  function animateLoop() {
+    const fps = Math.max(1, cfg.speed);
+    // run multiple steps per frame based on speed
+    const stepsThisFrame = Math.max(1, Math.floor(fps / 30));
+    for (let i = 0; i < stepsThisFrame; ++i) {
+      if (!state.done) step();
+    }
+    render();
+    if (cfg.autoplay && !state.done) rafId = requestAnimationFrame(animateLoop);
+    else rafId = null;
+  }
+
+  // Controls
+  document.getElementById('stepBtn').addEventListener('click', () => { step(); render(); });
+  document.getElementById('resetBtn').addEventListener('click', () => { initConfigFromUi(); resetState(); render(); });
+  document.getElementById('runBtn').addEventListener('click', () => { cfg.autoplay = true; document.getElementById('autoplay').checked = true; if (!rafId) animateLoop(); });
+  document.getElementById('capacity').addEventListener('change', () => { initConfigFromUi(); resetState(); render(); });
+  document.getElementById('producers').addEventListener('change', () => { initConfigFromUi(); resetState(); render(); });
+  document.getElementById('consumers').addEventListener('change', () => { initConfigFromUi(); resetState(); render(); });
+  document.getElementById('perProducer').addEventListener('change', () => { initConfigFromUi(); resetState(); render(); });
+  document.getElementById('autoplay').addEventListener('change', (e) => { cfg.autoplay = e.target.checked; if (cfg.autoplay && !rafId) animateLoop(); });
+  document.getElementById('speed').addEventListener('input', (e) => { cfg.speed = parseInt(e.target.value,10); });
+  document.getElementById('debugToggle').addEventListener('click', () => {
+    debugOn = !debugOn;
+    document.getElementById('debugToggle').textContent = debugOn ? 'Hide Debug' : 'Show Debug';
+    render();
+  });
+
+  // Keyboard shortcut: press 'd' or 'D' to toggle debug overlay
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'd' || e.key === 'D') {
+      debugOn = !debugOn;
+      document.getElementById('debugToggle').textContent = debugOn ? 'Hide Debug' : 'Show Debug';
+      render();
+    }
+  });
+
+  // Canvas mouse handling for dragging debug box
+  canvas.addEventListener('mousedown', (ev) => {
+    if (!debugOn) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = ev.clientX - rect.left;
+    const my = ev.clientY - rect.top;
+    const bx = state.debugBox.x, by = state.debugBox.y;
+    // check if mouse is inside debug box
+    const bw = 300, bh = 90;
+    if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
+      state.debugDragging = true;
+      dragStart = { mx, my, bx, by };
+    }
+  });
+  window.addEventListener('mousemove', (ev) => {
+    if (!debugOn || !state.debugDragging || !dragStart) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = ev.clientX - rect.left;
+    const my = ev.clientY - rect.top;
+    const dx = mx - dragStart.mx;
+    const dy = my - dragStart.my;
+    state.debugBox.x = Math.max(0, Math.min(canvas.width - 100, dragStart.bx + dx));
+    state.debugBox.y = Math.max(0, Math.min(canvas.height - 20, dragStart.by + dy));
+    render();
+  });
+  window.addEventListener('mouseup', () => {
+    if (state.debugDragging) {
+      state.debugDragging = false;
+      dragStart = null;
+    }
+  });
+
+  // Event navigation and replay UI
+  const prevBtn = document.getElementById('prevEvent');
+  const nextBtn = document.getElementById('nextEvent');
+  const slider = document.getElementById('eventSlider');
+  const replayBtn = document.getElementById('replayToggle');
+  const exportBtn = document.getElementById('exportJson');
+
+  function updateSliderMax() {
+    slider.max = Math.max(0, state.events.length - 1);
+    slider.value = Math.min(slider.value, slider.max);
+  }
+
+  function applyEventSnapshot(indexFloat) {
+    // indexFloat may be fractional; we interpolate between floor and ceil snapshots
+    if (state.events.length === 0) { render(); return; }
+    let idx = Math.max(0, Math.min(state.events.length - 1, indexFloat));
+    const i0 = Math.floor(idx);
+    const i1 = Math.min(state.events.length - 1, i0 + 1);
+    const alpha = idx - i0;
+    // rebuild base at i0
+    initConfigFromUi();
+    resetState();
+    const evs = state.events.slice(0, i0 + 1);
+    for (const ev of evs) {
+      if (ev.type === 'enq') {
+        const pos = ev.pos;
+        const cell = state.cells[pos & state.mask];
+        cell.val = ev.val;
+        cell.seq = pos + 1;
+        state.tail = Math.max(state.tail, pos + 1);
+        state.produced++;
+      } else if (ev.type === 'deq') {
+        const pos = ev.pos;
+        const cell = state.cells[pos & state.mask];
+        cell.val = null;
+        cell.seq = pos + state.cap;
+        state.head = Math.max(state.head, pos + 1);
+        state.consumed++;
+      }
+    }
+    // compute snapshot values from timeline arrays (ensure lengths match)
+    const t = state.timeline;
+    const v0 = { head: t.head[i0] ?? state.head, tail: t.tail[i0] ?? state.tail, produced: t.produced[i0] ?? state.produced, consumed: t.consumed[i0] ?? state.consumed };
+    const v1 = { head: t.head[i1] ?? v0.head, tail: t.tail[i1] ?? v0.tail, produced: t.produced[i1] ?? v0.produced, consumed: t.consumed[i1] ?? v0.consumed };
+    // interpolate display values
+    state.displayHead = v0.head * (1 - alpha) + v1.head * alpha;
+    state.displayTail = v0.tail * (1 - alpha) + v1.tail * alpha;
+    state.displayProduced = v0.produced * (1 - alpha) + v1.produced * alpha;
+    state.displayConsumed = v0.consumed * (1 - alpha) + v1.consumed * alpha;
+    state.steps = state.events[i0].step;
+    render();
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (state.events.length === 0) return;
+    replayIndex = Math.max(0, replayIndex - 1);
+    slider.value = replayIndex;
+    applyEventSnapshot(replayIndex);
+  });
+  nextBtn.addEventListener('click', () => {
+    if (state.events.length === 0) return;
+    replayIndex = Math.min(state.events.length - 1, replayIndex + 1);
+    slider.value = replayIndex;
+    applyEventSnapshot(replayIndex);
+  });
+  slider.addEventListener('input', (e) => {
+    if (state.events.length === 0) return;
+    replayIndex = Math.min(state.events.length - 1, parseInt(e.target.value, 10));
+    applyEventSnapshot(replayIndex);
+  });
+  replayBtn.addEventListener('click', () => {
+    replayMode = !replayMode;
+    replayBtn.textContent = replayMode ? 'Exit Replay Mode' : 'Enter Replay Mode';
+    if (replayMode) {
+      // when entering replay mode, pause autoplay
+      cfg.autoplay = false; document.getElementById('autoplay').checked = false;
+      // set slider to end
+      updateSliderMax();
+      replayIndex = Math.max(0, state.events.length - 1);
+      slider.value = replayIndex;
+      applyEventSnapshot(replayIndex);
+    } else {
+      // exit, restore live state by re-running events (fast)
+      initConfigFromUi(); resetState();
+      // replay full timeline to restore live state
+      applyEventSnapshot(Math.max(0, state.events.length - 1));
+      cfg.autoplay = true; document.getElementById('autoplay').checked = true; if (!rafId) animateLoop();
+    }
+  });
+
+  exportBtn.addEventListener('click', () => {
+    const out = JSON.stringify(state.events, null, 2);
+    const blob = new Blob([out], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'mpmc_events.json'; a.click(); URL.revokeObjectURL(url);
+  });
+
+  // Timeline playback
+  const playTimelineBtn = document.getElementById('playTimeline');
+  let playingTimeline = false;
+  let playIndex = 0.0; // fractional index
+  function updateSliderMax() { slider.max = Math.max(0, state.events.length - 1); slider.value = Math.min(slider.value, slider.max); }
+  function timelineStep(dt) {
+    if (!playingTimeline) return;
+    if (state.events.length === 0) return;
+    // speed: use cfg.speed as events-per-second multiplier
+    const eps = Math.max(1, cfg.speed / 4); // events per second base
+    playIndex += eps * (dt / 1000.0);
+    if (playIndex >= state.events.length - 1) { playIndex = state.events.length - 1; playingTimeline = false; playTimelineBtn.textContent = 'Play Timeline ▶'; }
+    slider.value = Math.floor(playIndex);
+    applyEventSnapshot(playIndex);
+  }
+  let lastTime = performance.now();
+  function playbackLoop(now) {
+    const dt = now - lastTime; lastTime = now;
+    timelineStep(dt);
+    if (playingTimeline) requestAnimationFrame(playbackLoop);
+  }
+  playTimelineBtn.addEventListener('click', () => {
+    if (state.events.length === 0) return;
+    playingTimeline = !playingTimeline;
+    playTimelineBtn.textContent = playingTimeline ? 'Pause Timeline ⏸' : 'Play Timeline ▶';
+    if (playingTimeline) { lastTime = performance.now(); requestAnimationFrame(playbackLoop); }
+  });
+
+  // Recording using MediaRecorder from canvas stream
+  document.getElementById('recordBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('recordBtn');
+    if (!recorder) {
+      recordedChunks = [];
+      const stream = canvas.captureStream(60);
+      recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      recorder.ondataavailable = e => { if (e.data && e.data.size) recordedChunks.push(e.data); };
+      recorder.onstop = () => { btn.textContent = 'Start Recording'; recorder = null; document.getElementById('downloadWebm').disabled = false; document.getElementById('convertMp4').disabled = false; };
+      recorder.start();
+      btn.textContent = 'Stop Recording';
+      document.getElementById('downloadWebm').disabled = true;
+      document.getElementById('convertMp4').disabled = true;
+    } else {
+      recorder.stop();
+    }
+  });
+
+  document.getElementById('downloadWebm').addEventListener('click', () => {
+    if (recordedChunks.length === 0) { alert('No recording available'); return; }
+    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'mpmc_record.webm'; a.click(); URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('convertMp4').addEventListener('click', async () => {
+    if (recordedChunks.length === 0) { alert('No recording to convert'); return; }
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+    status.textContent = 'Loading ffmpeg.wasm (may take a while)...';
+    await ffmpeg.load();
+    status.textContent = 'Converting...';
+    const webmBlob = new Blob(recordedChunks, { type: 'video/webm' });
+    ffmpeg.FS('writeFile', 'in.webm', await fetchFile(webmBlob));
+    // transcode to mp4
+    await ffmpeg.run('-i', 'in.webm', '-c:v', 'libx264', '-preset', 'fast', '-movflags', 'frag_keyframe+empty_moov', 'out.mp4');
+    const data = ffmpeg.FS('readFile', 'out.mp4');
+    const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
+    const url = URL.createObjectURL(mp4Blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'mpmc_record.mp4'; a.click(); URL.revokeObjectURL(url);
+    status.textContent = 'Conversion complete.';
+  });
+
+  // Initialize
+  initConfigFromUi();
+  resetState();
+  render();
+  if (cfg.autoplay) animateLoop();
+  </script>
+</body>
+</html>

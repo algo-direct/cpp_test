@@ -3,22 +3,40 @@
 #include <vector>
 #include <chrono>
 #include <atomic>
+#include <sstream>
+#include <iomanip>
 #include "mpmc_queue.h"
 
-int main()
+int main(int argc, char** argv)
 {
-    // configurable via env vars: MPMC_PRODUCERS, MPMC_CONSUMERS, MPMC_PER_PROD
-    auto getenv_u = [](const char* name, uint64_t fallback)->uint64_t{
-        const char* v = std::getenv(name);
-        if (!v) return fallback;
-        try { return std::stoull(v); } catch(...) { return fallback; }
-    };
-    const unsigned int producers = static_cast<unsigned int>(getenv_u("MPMC_PRODUCERS", 4));
-    const unsigned int consumers = static_cast<unsigned int>(getenv_u("MPMC_CONSUMERS", 3));
-    const uint64_t per_producer = getenv_u("MPMC_PER_PROD", 2000000ULL); // tune as needed
+    // Parse simple command-line args (defaults match previous env defaults)
+    unsigned int producers = 4;
+    unsigned int consumers = 3;
+    uint64_t per_producer = 2000000ULL;
+    bool backoff = true; // when true consumers sleep briefly when empty
+    uint64_t backoff_us = 50;
+
+    for (int i = 1; i < argc; ++i) {
+        std::string s(argv[i]);
+        if ((s == "-p") || (s == "--producers")) {
+            if (i + 1 < argc) producers = static_cast<unsigned int>(std::stoul(argv[++i]));
+        } else if ((s == "-c") || (s == "--consumers")) {
+            if (i + 1 < argc) consumers = static_cast<unsigned int>(std::stoul(argv[++i]));
+        } else if ((s == "-n") || (s == "--per-producer")) {
+            if (i + 1 < argc) per_producer = std::stoull(argv[++i]);
+        } else if (s == "--no-backoff") {
+            backoff = false;
+        } else if (s == "--backoff-us") {
+            if (i + 1 < argc) backoff_us = std::stoull(argv[++i]);
+        } else if ((s == "-h") || (s == "--help")) {
+            std::cout << "Usage: " << argv[0] << " [--producers N] [--consumers N] [--per-producer N] [--no-backoff] [--backoff-us N]\n";
+            return 0;
+        }
+    }
+
     const uint64_t total = per_producer * producers;
 
-    MPMCQueue<uint64_t> q(1024);
+    MPMCQueue<uint64_t> q{};
 
     std::atomic<uint64_t> produced_sum{0};
     std::atomic<uint64_t> consumed_sum{0};
@@ -39,22 +57,36 @@ int main()
     }
 
     std::atomic<uint64_t> consumed_count{0};
+    std::atomic<bool> producers_done{false};
     // Launch consumers
     std::vector<std::thread> cth;
     for (unsigned int c = 0; c < consumers; ++c) {
-        cth.emplace_back([&]{
+        cth.emplace_back([&, c]{
             uint64_t local_sum = 0;
+            uint64_t spin = 0;
             while (true) {
                 uint64_t v;
                 if (q.try_dequeue(v)) {
                     local_sum += v;
                     uint64_t prev = consumed_count.fetch_add(1, std::memory_order_relaxed);
                     if (prev + 1 >= total) break;
+                    spin = 0;
                 } else {
                     // If enough items have been consumed by other threads, exit.
                     if (consumed_count.load(std::memory_order_relaxed) >= total) break;
-                    // try again briefly
-                    std::this_thread::yield();
+                    // If producers are done and queue empty, exit
+                    if (producers_done.load(std::memory_order_relaxed)) {
+                        if (consumed_count.load(std::memory_order_relaxed) >= total) break;
+                    }
+                    // Backoff strategy: yield for a while, then sleep if enabled
+                    if (spin < 50) {
+                        ++spin;
+                        std::this_thread::yield();
+                    } else if (backoff) {
+                        std::this_thread::sleep_for(std::chrono::microseconds(backoff_us));
+                    } else {
+                        std::this_thread::yield();
+                    }
                 }
             }
             consumed_sum.fetch_add(local_sum, std::memory_order_relaxed);
@@ -63,6 +95,7 @@ int main()
 
     auto start = std::chrono::steady_clock::now();
     for (auto &t : pth) t.join();
+    producers_done.store(true, std::memory_order_relaxed);
     for (auto &t : cth) t.join();
     auto end = std::chrono::steady_clock::now();
 
@@ -75,6 +108,24 @@ int main()
         return 2;
     }
 
-    std::cout << "Transferred " << total << " items in " << secs << " seconds (" << (total / secs) << " ops/s)\n";
+    // Print queue instrumentation (lightweight counters)
+    std::cout << "Queue stats: spins=" << q.stats_spins() << " cas_failures=" << q.stats_cas_failures() << "\n";
+
+    // human-readable ops/sec formatter
+    auto human_rate = [](double v) {
+        const char* suf[] = {"", "K", "M", "G", "T"};
+        size_t idx = 0;
+        while (v >= 1000.0 && idx < 4) { v /= 1000.0; ++idx; }
+        std::ostringstream os;
+        os.setf(std::ios::fixed);
+        if (v >= 100.0) os << std::setprecision(0);
+        else if (v >= 10.0) os << std::setprecision(1);
+        else os << std::setprecision(2);
+        os << v << suf[idx] << " ops/s";
+        return os.str();
+    };
+
+    double rate = (secs > 0.0) ? (static_cast<double>(total) / secs) : 0.0;
+    std::cout << "Transferred " << total << " items in " << secs << " seconds (" << human_rate(rate) << ")\n";
     return 0;
 }

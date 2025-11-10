@@ -4,6 +4,9 @@ project(cpp_test LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Request GNU extensions (gnu++23) so compilers pass -std=gnu++23 instead of -std=c++23.
+# Some code in this tree relies on GNU extensions; set to OFF if strictly conforming c++23 is desired.
+set(CMAKE_CXX_EXTENSIONS ON)
 
 # Threads for std::thread
 find_package(Threads REQUIRED)
@@ -94,3 +97,6 @@ if(BUILD_DPDK_EXAMPLE)
 
 	install(TARGETS dpdk_recv RUNTIME DESTINATION bin)
 endif()
+
+	# Add temp examples and tests
+	add_subdirectory(temp)
