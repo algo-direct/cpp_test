@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000" width="1400" height="1000">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #333; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 14px; fill: #666; }
+      .box-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #fff; }
+      .box-text { font-family: Arial, sans-serif; font-size: 11px; fill: #fff; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; fill: #333; }
+      .arrow { fill: none; stroke: #666; stroke-width: 2; marker-end: url(#arrowhead); }
+      .arrow-red { fill: none; stroke: #d32f2f; stroke-width: 2; marker-end: url(#arrowhead-red); }
+      .arrow-green { fill: none; stroke: #388e3c; stroke-width: 2; marker-end: url(#arrowhead-green); }
+      .arrow-blue { fill: none; stroke: #1976d2; stroke-width: 2; marker-end: url(#arrowhead-blue); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#666" />
+    </marker>
+    <marker id="arrowhead-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#d32f2f" />
+    </marker>
+    <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#388e3c" />
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="30" class="title" text-anchor="middle">Execution Management System (EMS) - High-Level Architecture</text>
+  <text x="700" y="50" class="subtitle" text-anchor="middle">Hedge Fund Trading Infrastructure</text>
+
+  <!-- Layer Labels -->
+  <text x="20" y="100" class="label" font-weight="bold">USER LAYER</text>
+  <text x="20" y="220" class="label" font-weight="bold">APPLICATION LAYER</text>
+  <text x="20" y="500" class="label" font-weight="bold">CORE SERVICES</text>
+  <text x="20" y="750" class="label" font-weight="bold">MARKET CONNECTIVITY</text>
+  <text x="20" y="920" class="label" font-weight="bold">DATA STORAGE</text>
+
+  <!-- USER LAYER -->
+  <rect x="150" y="80" width="180" height="100" rx="5" fill="#1976d2" stroke="#0d47a1" stroke-width="2"/>
+  <text x="240" y="105" class="box-title" text-anchor="middle">Portfolio Manager</text>
+  <text x="240" y="125" class="box-text" text-anchor="middle">Trading GUI</text>
+  <text x="240" y="145" class="box-text" text-anchor="middle">Order Entry</text>
+  <text x="240" y="165" class="box-text" text-anchor="middle">Blotter / P&amp;L View</text>
+
+  <rect x="380" y="80" width="180" height="100" rx="5" fill="#1976d2" stroke="#0d47a1" stroke-width="2"/>
+  <text x="470" y="105" class="box-title" text-anchor="middle">Trader / Execution Desk</text>
+  <text x="470" y="125" class="box-text" text-anchor="middle">Manual Execution</text>
+  <text x="470" y="145" class="box-text" text-anchor="middle">Algo Monitoring</text>
+  <text x="470" y="165" class="box-text" text-anchor="middle">Market View</text>
+
+  <rect x="610" y="80" width="180" height="100" rx="5" fill="#1976d2" stroke="#0d47a1" stroke-width="2"/>
+  <text x="700" y="105" class="box-title" text-anchor="middle">Quant / Research</text>
+  <text x="700" y="125" class="box-text" text-anchor="middle">Signal Generation</text>
+  <text x="700" y="145" class="box-text" text-anchor="middle">Backtesting</text>
+  <text x="700" y="165" class="box-text" text-anchor="middle">API / Automation</text>
+
+  <rect x="840" y="80" width="180" height="100" rx="5" fill="#1976d2" stroke="#0d47a1" stroke-width="2"/>
+  <text x="930" y="105" class="box-title" text-anchor="middle">Risk / Compliance</text>
+  <text x="930" y="125" class="box-text" text-anchor="middle">Pre-trade Limits</text>
+  <text x="930" y="145" class="box-text" text-anchor="middle">Audit / Reporting</text>
+  <text x="930" y="165" class="box-text" text-anchor="middle">Alerts</text>
+
+  <!-- APPLICATION LAYER -->
+  <rect x="150" y="230" width="870" height="220" rx="5" fill="#43a047" stroke="#2e7d32" stroke-width="2"/>
+  <text x="585" y="255" class="box-title" text-anchor="middle">EMS Core Application</text>
+
+  <!-- EMS Sub-components -->
+  <rect x="170" y="270" width="200" height="160" rx="3" fill="#66bb6a" stroke="#388e3c" stroke-width="1"/>
+  <text x="270" y="290" class="box-text" text-anchor="middle" font-weight="bold">Order Management</text>
+  <text x="270" y="310" class="box-text" text-anchor="middle">• Order Lifecycle</text>
+  <text x="270" y="330" class="box-text" text-anchor="middle">• State Machine</text>
+  <text x="270" y="350" class="box-text" text-anchor="middle">• Basket Orders</text>
+  <text x="270" y="370" class="box-text" text-anchor="middle">• Parent/Child Orders</text>
+  <text x="270" y="390" class="box-text" text-anchor="middle">• Modify/Cancel</text>
+  <text x="270" y="410" class="box-text" text-anchor="middle">• Fill Aggregation</text>
+
+  <rect x="390" y="270" width="200" height="160" rx="3" fill="#66bb6a" stroke="#388e3c" stroke-width="1"/>
+  <text x="490" y="290" class="box-text" text-anchor="middle" font-weight="bold">Execution Algos</text>
+  <text x="490" y="310" class="box-text" text-anchor="middle">• VWAP / TWAP</text>
+  <text x="490" y="330" class="box-text" text-anchor="middle">• POV (% of Volume)</text>
+  <text x="490" y="350" class="box-text" text-anchor="middle">• Implementation Shortfall</text>
+  <text x="490" y="370" class="box-text" text-anchor="middle">• Dark Pool Sweep</text>
+  <text x="490" y="390" class="box-text" text-anchor="middle">• Custom Strategies</text>
+  <text x="490" y="410" class="box-text" text-anchor="middle">• Smart Order Router</text>
+
+  <rect x="610" y="270" width="200" height="160" rx="3" fill="#66bb6a" stroke="#388e3c" stroke-width="1"/>
+  <text x="710" y="290" class="box-text" text-anchor="middle" font-weight="bold">Risk Engine</text>
+  <text x="710" y="310" class="box-text" text-anchor="middle">• Pre-trade Checks</text>
+  <text x="710" y="330" class="box-text" text-anchor="middle">• Position Limits</text>
+  <text x="710" y="350" class="box-text" text-anchor="middle">• Notional Caps</text>
+  <text x="710" y="370" class="box-text" text-anchor="middle">• Restricted Lists</text>
+  <text x="710" y="390" class="box-text" text-anchor="middle">• Margin Checks</text>
+  <text x="710" y="410" class="box-text" text-anchor="middle">• Kill Switch</text>
+
+  <rect x="830" y="270" width="170" height="160" rx="3" fill="#66bb6a" stroke="#388e3c" stroke-width="1"/>
+  <text x="915" y="290" class="box-text" text-anchor="middle" font-weight="bold">TCA / Analytics</text>
+  <text x="915" y="310" class="box-text" text-anchor="middle">• Slippage Analysis</text>
+  <text x="915" y="330" class="box-text" text-anchor="middle">• Execution Quality</text>
+  <text x="915" y="350" class="box-text" text-anchor="middle">• Benchmark vs Actual</text>
+  <text x="915" y="370" class="box-text" text-anchor="middle">• Best Execution</text>
+  <text x="915" y="390" class="box-text" text-anchor="middle">• Cost Attribution</text>
+  <text x="915" y="410" class="box-text" text-anchor="middle">• Reporting</text>
+
+  <!-- CORE SERVICES -->
+  <rect x="150" y="520" width="200" height="120" rx="5" fill="#f57c00" stroke="#e65100" stroke-width="2"/>
+  <text x="250" y="545" class="box-title" text-anchor="middle">Market Data Service</text>
+  <text x="250" y="565" class="box-text" text-anchor="middle">• Real-time Quotes</text>
+  <text x="250" y="585" class="box-text" text-anchor="middle">• Order Book (L2/L3)</text>
+  <text x="250" y="605" class="box-text" text-anchor="middle">• Trades / Prints</text>
+  <text x="250" y="625" class="box-text" text-anchor="middle">• Normalization</text>
+
+  <rect x="380" y="520" width="200" height="120" rx="5" fill="#f57c00" stroke="#e65100" stroke-width="2"/>
+  <text x="480" y="545" class="box-title" text-anchor="middle">Position Manager</text>
+  <text x="480" y="565" class="box-text" text-anchor="middle">• Real-time Positions</text>
+  <text x="480" y="585" class="box-text" text-anchor="middle">• P&amp;L Calculation</text>
+  <text x="480" y="605" class="box-text" text-anchor="middle">• SOD Reconciliation</text>
+  <text x="480" y="625" class="box-text" text-anchor="middle">• Cash / Margin</text>
+
+  <rect x="610" y="520" width="200" height="120" rx="5" fill="#f57c00" stroke="#e65100" stroke-width="2"/>
+  <text x="710" y="545" class="box-title" text-anchor="middle">Reference Data</text>
+  <text x="710" y="565" class="box-text" text-anchor="middle">• Instrument Master</text>
+  <text x="710" y="585" class="box-text" text-anchor="middle">• Symbology Mapping</text>
+  <text x="710" y="605" class="box-text" text-anchor="middle">• Exchange Configs</text>
+  <text x="710" y="625" class="box-text" text-anchor="middle">• Trading Calendar</text>
+
+  <rect x="840" y="520" width="200" height="120" rx="5" fill="#f57c00" stroke="#e65100" stroke-width="2"/>
+  <text x="940" y="545" class="box-title" text-anchor="middle">Event Bus / Messaging</text>
+  <text x="940" y="565" class="box-text" text-anchor="middle">• Order Events</text>
+  <text x="940" y="585" class="box-text" text-anchor="middle">• Fill Notifications</text>
+  <text x="940" y="605" class="box-text" text-anchor="middle">• Risk Alerts</text>
+  <text x="940" y="625" class="box-text" text-anchor="middle">• Pub/Sub (Kafka/ZMQ)</text>
+
+  <!-- MARKET CONNECTIVITY -->
+  <rect x="150" y="770" width="200" height="100" rx="5" fill="#7b1fa2" stroke="#4a148c" stroke-width="2"/>
+  <text x="250" y="795" class="box-title" text-anchor="middle">FIX Gateway</text>
+  <text x="250" y="815" class="box-text" text-anchor="middle">• FIX 4.2 / 4.4 / 5.0</text>
+  <text x="250" y="835" class="box-text" text-anchor="middle">• Session Management</text>
+  <text x="250" y="855" class="box-text" text-anchor="middle">• Order Routing</text>
+
+  <rect x="380" y="770" width="200" height="100" rx="5" fill="#7b1fa2" stroke="#4a148c" stroke-width="2"/>
+  <text x="480" y="795" class="box-title" text-anchor="middle">Exchange Connectors</text>
+  <text x="480" y="815" class="box-text" text-anchor="middle">• NYSE / Nasdaq / CME</text>
+  <text x="480" y="835" class="box-text" text-anchor="middle">• Native APIs</text>
+  <text x="480" y="855" class="box-text" text-anchor="middle">• Drop Copy</text>
+
+  <rect x="610" y="770" width="200" height="100" rx="5" fill="#7b1fa2" stroke="#4a148c" stroke-width="2"/>
+  <text x="710" y="795" class="box-title" text-anchor="middle">Broker Connectivity</text>
+  <text x="710" y="815" class="box-text" text-anchor="middle">• Prime Brokers</text>
+  <text x="710" y="835" class="box-text" text-anchor="middle">• Executing Brokers</text>
+  <text x="710" y="855" class="box-text" text-anchor="middle">• DMA / Care Orders</text>
+
+  <rect x="840" y="770" width="200" height="100" rx="5" fill="#7b1fa2" stroke="#4a148c" stroke-width="2"/>
+  <text x="940" y="795" class="box-title" text-anchor="middle">Market Data Feeds</text>
+  <text x="940" y="815" class="box-text" text-anchor="middle">• Bloomberg / Reuters</text>
+  <text x="940" y="835" class="box-text" text-anchor="middle">• Exchange Feeds</text>
+  <text x="940" y="855" class="box-text" text-anchor="middle">• Consolidated Tape</text>
+
+  <!-- DATA STORAGE -->
+  <rect x="150" y="940" width="200" height="40" rx="5" fill="#424242" stroke="#212121" stroke-width="2"/>
+  <text x="250" y="965" class="box-title" text-anchor="middle">Order DB (Postgres/Oracle)</text>
+
+  <rect x="380" y="940" width="200" height="40" rx="5" fill="#424242" stroke="#212121" stroke-width="2"/>
+  <text x="480" y="965" class="box-title" text-anchor="middle">Time-Series DB (InfluxDB)</text>
+
+  <rect x="610" y="940" width="200" height="40" rx="5" fill="#424242" stroke="#212121" stroke-width="2"/>
+  <text x="710" y="965" class="box-title" text-anchor="middle">Audit Log (Immutable)</text>
+
+  <rect x="840" y="940" width="200" height="40" rx="5" fill="#424242" stroke="#212121" stroke-width="2"/>
+  <text x="940" y="965" class="box-title" text-anchor="middle">Cache (Redis)</text>
+
+  <!-- ARROWS: Users to EMS -->
+  <path class="arrow-blue" d="M 240 180 L 240 230"/>
+  <path class="arrow-blue" d="M 470 180 L 470 230"/>
+  <path class="arrow-blue" d="M 700 180 L 700 230"/>
+  <path class="arrow-blue" d="M 930 180 L 930 230"/>
+
+  <!-- ARROWS: EMS to Core Services -->
+  <path class="arrow" d="M 250 450 L 250 520"/>
+  <path class="arrow" d="M 480 450 L 480 520"/>
+  <path class="arrow" d="M 710 450 L 710 520"/>
+  <path class="arrow" d="M 940 450 L 940 520"/>
+
+  <!-- ARROWS: Core Services to Connectivity -->
+  <path class="arrow-red" d="M 250 640 L 250 770"/>
+  <text x="260" y="710" class="label" font-size="10">Orders</text>
+  
+  <path class="arrow-green" d="M 940 640 L 940 770"/>
+  <text x="950" y="710" class="label" font-size="10">Market Data</text>
+
+  <!-- ARROWS: Connectivity to Storage -->
+  <path class="arrow" d="M 250 870 L 250 940"/>
+  <path class="arrow" d="M 480 870 L 480 940"/>
+  <path class="arrow" d="M 710 870 L 710 940"/>
+  <path class="arrow" d="M 940 870 L 940 940"/>
+
+  <!-- Cross-layer arrows (Market Data to Position) -->
+  <path class="arrow-green" d="M 350 580 L 380 580"/>
+  
+  <!-- Legend -->
+  <rect x="1100" y="200" width="250" height="180" rx="5" fill="#f5f5f5" stroke="#999" stroke-width="1"/>
+  <text x="1225" y="225" class="label" text-anchor="middle" font-weight="bold">Data Flow Legend</text>
+  
+  <line x1="1120" y1="245" x2="1180" y2="245" class="arrow-blue"/>
+  <text x="1190" y="250" class="label">User Interactions</text>
+  
+  <line x1="1120" y1="270" x2="1180" y2="270" class="arrow-red"/>
+  <text x="1190" y="275" class="label">Order Flow (outbound)</text>
+  
+  <line x1="1120" y1="295" x2="1180" y2="295" class="arrow-green"/>
+  <text x="1190" y="300" class="label">Market Data (inbound)</text>
+  
+  <line x1="1120" y1="320" x2="1180" y2="320" class="arrow"/>
+  <text x="1190" y="325" class="label">Internal Services</text>
+
+  <text x="1225" y="355" class="label" text-anchor="middle" font-size="10" font-style="italic">Critical NFRs:</text>
+  <text x="1120" y="370" class="label" font-size="9">• Sub-millisecond order latency</text>
+  <text x="1120" y="385" class="label" font-size="9">• 99.99% uptime (trading hours)</text>
+  <text x="1120" y="400" class="label" font-size="9">• Real-time risk enforcement</text>
+  <text x="1120" y="415" class="label" font-size="9">• Audit trail for compliance</text>
+  <text x="1120" y="430" class="label" font-size="9">• Failover &amp; disaster recovery</text>
+
+</svg>
