@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1000" width="1400" height="1000">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 22px; font-weight: bold; fill: #333; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 13px; fill: #666; }
+      .component-box { fill: #1976d2; stroke: #0d47a1; stroke-width: 2; }
+      .component-title { font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; fill: #fff; }
+      .component-text { font-family: Arial, sans-serif; font-size: 10px; fill: #fff; }
+      .algo-box { fill: #43a047; stroke: #2e7d32; stroke-width: 2; }
+      .data-box { fill: #f57c00; stroke: #e65100; stroke-width: 2; }
+      .arrow { fill: none; stroke: #333; stroke-width: 2; marker-end: url(#arrowhead); }
+      .arrow-data { fill: none; stroke: #f57c00; stroke-width: 2; marker-end: url(#arrowhead-data); }
+      .label { font-family: Arial, sans-serif; font-size: 11px; fill: #333; }
+      .note-box { fill: #fff3cd; stroke: #ffc107; stroke-width: 1; }
+      .note-text { font-family: Arial, sans-serif; font-size: 10px; fill: #333; }
+      .section-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #1976d2; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#333" />
+    </marker>
+    <marker id="arrowhead-data" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#f57c00" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="30" class="title" text-anchor="middle">Execution Algo Internals: VWAP Strategy</text>
+  <text x="700" y="50" class="subtitle" text-anchor="middle">Adaptive Time-Weighted Average Price Execution</text>
+
+  <!-- Core Components -->
+  <rect x="50" y="80" width="250" height="120" rx="5" class="component-box"/>
+  <text x="175" y="105" class="component-title" text-anchor="middle">Algo Controller</text>
+  <text x="60" y="125" class="component-text">• Parent order management</text>
+  <text x="60" y="140" class="component-text">• Time slicing scheduler</text>
+  <text x="60" y="155" class="component-text">• Child order lifecycle</text>
+  <text x="60" y="170" class="component-text">• State machine (init/running/done)</text>
+  <text x="60" y="185" class="component-text">• Error handling &amp; fallback</text>
+
+  <rect x="350" y="80" width="250" height="120" rx="5" class="component-box"/>
+  <text x="475" y="105" class="component-title" text-anchor="middle">Pricing Engine</text>
+  <text x="360" y="125" class="component-text">• Mid-price calculation (bid+ask)/2</text>
+  <text x="360" y="140" class="component-text">• Limit price offset (passive fills)</text>
+  <text x="360" y="155" class="component-text">• Spread analysis</text>
+  <text x="360" y="170" class="component-text">• Price tolerance checks</text>
+  <text x="360" y="185" class="component-text">• Adaptive aggression (urgent mode)</text>
+
+  <rect x="650" y="80" width="250" height="120" rx="5" class="component-box"/>
+  <text x="775" y="105" class="component-title" text-anchor="middle">Volume Tracker</text>
+  <text x="660" y="125" class="component-text">• Real-time market volume feed</text>
+  <text x="660" y="140" class="component-text">• Historical VWAP benchmark</text>
+  <text x="660" y="155" class="component-text">• Participation rate calculation</text>
+  <text x="660" y="170" class="component-text">• Detect volume spikes/droughts</text>
+  <text x="660" y="185" class="component-text">• Adjust slice sizes dynamically</text>
+
+  <rect x="950" y="80" width="250" height="120" rx="5" class="component-box"/>
+  <text x="1075" y="105" class="component-title" text-anchor="middle">Order Router</text>
+  <text x="960" y="125" class="component-text">• Smart order routing logic</text>
+  <text x="960" y="140" class="component-text">• Venue selection (lit vs dark)</text>
+  <text x="960" y="155" class="component-text">• FIX message construction</text>
+  <text x="960" y="170" class="component-text">• Fill aggregation &amp; ack handling</text>
+  <text x="960" y="185" class="component-text">• Retry on reject/timeout</text>
+
+  <!-- Data Inputs -->
+  <rect x="50" y="240" width="180" height="80" rx="5" class="data-box"/>
+  <text x="140" y="260" class="component-title" text-anchor="middle">Market Data</text>
+  <text x="60" y="280" class="component-text">• L1 quotes (BBO)</text>
+  <text x="60" y="295" class="component-text">• Trades / prints</text>
+  <text x="60" y="310" class="component-text">• Volume per interval</text>
+
+  <rect x="280" y="240" width="180" height="80" rx="5" class="data-box"/>
+  <text x="370" y="260" class="component-title" text-anchor="middle">Parent Order</text>
+  <text x="290" y="280" class="component-text">• Target qty: 10,000</text>
+  <text x="290" y="295" class="component-text">• Time window: 30min</text>
+  <text x="290" y="310" class="component-text">• Strategy: VWAP</text>
+
+  <rect x="510" y="240" width="180" height="80" rx="5" class="data-box"/>
+  <text x="600" y="260" class="component-title" text-anchor="middle">Config Params</text>
+  <text x="520" y="280" class="component-text">• Max participation: 10%</text>
+  <text x="520" y="295" class="component-text">• Slice interval: 90s</text>
+  <text x="520" y="310" class="component-text">• Urgency: normal</text>
+
+  <!-- Arrows from inputs to components -->
+  <path class="arrow-data" d="M 140 240 L 140 200"/>
+  <path class="arrow-data" d="M 370 240 L 370 220 L 175 220 L 175 200"/>
+  <path class="arrow-data" d="M 600 240 L 600 220 L 475 220 L 475 200"/>
+
+  <!-- VWAP Algorithm Logic -->
+  <text x="50" y="360" class="section-title">VWAP Algorithm Execution Flow</text>
+  <rect x="50" y="370" width="1200" height="280" rx="5" class="algo-box"/>
+  
+  <text x="70" y="395" class="component-text" font-weight="bold" fill="#fff">Step 1: Initialization</text>
+  <text x="80" y="415" class="component-text" fill="#fff">• Parse parent order: target_qty = 10,000, time_window = 30min (1800s)</text>
+  <text x="80" y="430" class="component-text" fill="#fff">• Calculate slice_interval = 1800s / 20 = 90s (send 1 child order every 90 seconds)</text>
+  <text x="80" y="445" class="component-text" fill="#fff">• Initial slice_qty = 10,000 / 20 = 500 shares per slice (will adapt based on market volume)</text>
+  <text x="80" y="460" class="component-text" fill="#fff">• Subscribe to market data feed for AAPL (quotes + trades)</text>
+
+  <text x="70" y="485" class="component-text" font-weight="bold" fill="#fff">Step 2: Slice Scheduling Loop (every 90s)</text>
+  <text x="80" y="505" class="component-text" fill="#fff">• Check remaining_qty: if 0 → terminate algo successfully</text>
+  <text x="80" y="520" class="component-text" fill="#fff">• Query Volume Tracker: get market_volume_this_interval</text>
+  <text x="80" y="535" class="component-text" fill="#fff">• Adaptive sizing: if market_volume &gt; expected → increase slice_qty; if low volume → reduce slice_qty</text>
+  <text x="80" y="550" class="component-text" fill="#fff">   Example: if avg_market_vol = 50k/interval and current = 80k → slice_qty = 500 * (80/50) = 800 shares</text>
+  <text x="80" y="565" class="component-text" fill="#fff">• Participation cap: ensure our_volume / market_volume ≤ 10% (don't dominate book)</text>
+  <text x="80" y="580" class="component-text" fill="#fff">• Query Pricing Engine: calculate limit_price = mid_price - 1_tick (passive; wait for fills)</text>
+
+  <text x="70" y="605" class="component-text" font-weight="bold" fill="#fff">Step 3: Child Order Submission</text>
+  <text x="80" y="625" class="component-text" fill="#fff">• Create child order: ClOrdID = parent_id + "-" + slice_num, qty = slice_qty, price = limit_price, TIF = DAY</text>
+  <text x="80" y="640" class="component-text" fill="#fff">• Route via Order Router → FIX gateway → Exchange</text>
+
+  <!-- Child Order State Monitoring -->
+  <text x="700" y="395" class="component-text" font-weight="bold" fill="#fff">Step 4: Monitor Child Order</text>
+  <text x="710" y="415" class="component-text" fill="#fff">• Wait for ack: if rejected → log error, adjust params, retry</text>
+  <text x="710" y="430" class="component-text" fill="#fff">• On partial fill: update remaining_qty, recalculate avg_price</text>
+  <text x="710" y="445" class="component-text" fill="#fff">• If unfilled after interval → cancel and re-slice in next round</text>
+  <text x="710" y="460" class="component-text" fill="#fff">• Track slippage: (fill_price - arrival_price) per share</text>
+
+  <text x="700" y="485" class="component-text" font-weight="bold" fill="#fff">Step 5: Urgency / Fallback Logic</text>
+  <text x="710" y="505" class="component-text" fill="#fff">• If time_remaining &lt; 10% and filled &lt; 80% → switch to aggressive mode:</text>
+  <text x="720" y="520" class="component-text" fill="#fff">  - Send market orders or marketable limit orders</text>
+  <text x="720" y="535" class="component-text" fill="#fff">  - Increase participation rate to 20%</text>
+  <text x="720" y="550" class="component-text" fill="#fff">  - Accept higher slippage to ensure completion</text>
+  <text x="710" y="565" class="component-text" fill="#fff">• If parent order canceled by user → cancel all live child orders immediately</text>
+  <text x="710" y="580" class="component-text" fill="#fff">• On exchange outage → pause algo, route to backup venue, or fail gracefully</text>
+
+  <text x="700" y="605" class="component-text" font-weight="bold" fill="#fff">Step 6: Completion &amp; Reporting</text>
+  <text x="710" y="625" class="component-text" fill="#fff">• When remaining_qty = 0 → mark parent as FILLED, publish final event</text>
+  <text x="710" y="640" class="component-text" fill="#fff">• TCA report: actual_avg_price vs arrival_price, slippage, vs benchmark VWAP, participation %</text>
+
+  <!-- Performance Metrics -->
+  <text x="50" y="680" class="section-title">Performance Metrics &amp; Optimization</text>
+  <rect x="50" y="690" width="600" height="140" rx="5" class="note-box"/>
+  <text x="60" y="710" class="note-text" font-weight="bold">Latency Targets:</text>
+  <text x="70" y="725" class="note-text">• Slice decision to order submission: &lt; 5ms</text>
+  <text x="70" y="740" class="note-text">• Fill receipt to parent update: &lt; 2ms</text>
+  <text x="70" y="755" class="note-text">• Market data event to pricing update: &lt; 1ms (use lock-free queues)</text>
+  
+  <text x="60" y="775" class="note-text" font-weight="bold">Optimization Techniques:</text>
+  <text x="70" y="790" class="note-text">• Pre-allocate child order objects (avoid malloc on hot path)</text>
+  <text x="70" y="805" class="note-text">• Use lock-free ring buffer for market data ingestion</text>
+  <text x="70" y="820" class="note-text">• Cache venue configs, symbology, tick sizes in memory</text>
+
+  <!-- Alternative Algos -->
+  <text x="680" y="680" class="section-title">Alternative Algo Strategies</text>
+  <rect x="680" y="690" width="520" height="140" rx="5" class="note-box"/>
+  <text x="690" y="710" class="note-text" font-weight="bold">TWAP (Time-Weighted):</text>
+  <text x="700" y="725" class="note-text">• Fixed slice qty, evenly distributed over time (ignore volume)</text>
+  
+  <text x="690" y="745" class="note-text" font-weight="bold">POV (Percent of Volume):</text>
+  <text x="700" y="760" class="note-text">• Target participation = X% of market volume each interval</text>
+  <text x="700" y="775" class="note-text">• Slice_qty = market_volume_this_interval × target_%</text>
+
+  <text x="690" y="795" class="note-text" font-weight="bold">Implementation Shortfall:</text>
+  <text x="700" y="810" class="note-text">• Minimize (execution_price - decision_price) × qty</text>
+  <text x="700" y="825" class="note-text">• Trade urgency vs slippage dynamically</text>
+
+  <!-- Risk Controls -->
+  <text x="50" y="860" class="section-title">Algo-Level Risk Controls</text>
+  <rect x="50" y="870" width="1150" height="110" rx="5" fill="#ffebee" stroke="#c62828" stroke-width="2"/>
+  <text x="60" y="890" class="note-text" font-weight="bold">Pre-flight Checks (before each child order):</text>
+  <text x="70" y="905" class="note-text">• Verify parent order still active (not canceled by user)</text>
+  <text x="70" y="920" class="note-text">• Check cumulative filled qty ≤ target (prevent overfill)</text>
+  <text x="70" y="935" class="note-text">• Sanity: slice_price within tolerance of current mid (avoid fat-finger if stale quote)</text>
+  <text x="70" y="950" class="note-text">• Rate limiting: max N orders per second to prevent runaway</text>
+  <text x="70" y="965" class="note-text">• Kill-switch: if slippage &gt; threshold or unusual reject rate → pause and alert operator</text>
+
+</svg>

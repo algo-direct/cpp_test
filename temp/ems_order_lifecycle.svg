@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 22px; font-weight: bold; fill: #333; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 13px; fill: #666; }
+      .state-box { fill: #42a5f5; stroke: #1976d2; stroke-width: 2; }
+      .state-text { font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; fill: #fff; text-anchor: middle; }
+      .state-details { font-family: Arial, sans-serif; font-size: 10px; fill: #fff; }
+      .arrow { fill: none; stroke: #333; stroke-width: 2; marker-end: url(#arrowhead); }
+      .arrow-label { font-family: Arial, sans-serif; font-size: 11px; fill: #d32f2f; font-weight: bold; }
+      .note-box { fill: #fff3cd; stroke: #ffc107; stroke-width: 1; }
+      .note-text { font-family: Arial, sans-serif; font-size: 10px; fill: #333; }
+      .section-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #1976d2; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#333" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="30" class="title" text-anchor="middle">Order Management: Lifecycle State Machine</text>
+  <text x="600" y="50" class="subtitle" text-anchor="middle">From Order Creation to Final Settlement</text>
+
+  <!-- State: New/Pending -->
+  <rect x="50" y="100" width="180" height="100" rx="5" class="state-box"/>
+  <text x="140" y="125" class="state-text">NEW / PENDING</text>
+  <text x="60" y="145" class="state-details">• Order created</text>
+  <text x="60" y="160" class="state-details">• Awaiting validation</text>
+  <text x="60" y="175" class="state-details">• Assigned Order ID</text>
+  <text x="60" y="190" class="state-details">• Not yet sent to market</text>
+
+  <!-- State: Validated -->
+  <rect x="280" y="100" width="180" height="100" rx="5" class="state-box"/>
+  <text x="370" y="125" class="state-text">VALIDATED</text>
+  <text x="290" y="145" class="state-details">• Pre-trade checks passed</text>
+  <text x="290" y="160" class="state-details">• Risk limits OK</text>
+  <text x="290" y="175" class="state-details">• Instrument verified</text>
+  <text x="290" y="190" class="state-details">• Ready for routing</text>
+
+  <!-- State: Routed -->
+  <rect x="510" y="100" width="180" height="100" rx="5" class="state-box"/>
+  <text x="600" y="125" class="state-text">ROUTED</text>
+  <text x="520" y="145" class="state-details">• Sent to exchange/broker</text>
+  <text x="520" y="160" class="state-details">• FIX message dispatched</text>
+  <text x="520" y="175" class="state-details">• Awaiting ack</text>
+  <text x="520" y="190" class="state-details">• ClOrdID assigned</text>
+
+  <!-- State: Accepted (Live) -->
+  <rect x="740" y="100" width="180" height="100" rx="5" class="state-box"/>
+  <text x="830" y="125" class="state-text">ACCEPTED (LIVE)</text>
+  <text x="750" y="145" class="state-details">• Acknowledged by venue</text>
+  <text x="750" y="160" class="state-details">• In order book</text>
+  <text x="750" y="175" class="state-details">• Can receive fills</text>
+  <text x="750" y="190" class="state-details">• Awaiting execution</text>
+
+  <!-- State: Partially Filled -->
+  <rect x="970" y="100" width="180" height="100" rx="5" class="state-box"/>
+  <text x="1060" y="125" class="state-text">PARTIALLY FILLED</text>
+  <text x="980" y="145" class="state-details">• Some qty executed</text>
+  <text x="980" y="160" class="state-details">• Remaining qty live</text>
+  <text x="980" y="175" class="state-details">• Multiple fills possible</text>
+  <text x="980" y="190" class="state-details">• Avg price calculated</text>
+
+  <!-- State: Filled -->
+  <rect x="510" y="280" width="180" height="100" rx="5" fill="#66bb6a" stroke="#388e3c" stroke-width="2"/>
+  <text x="600" y="305" class="state-text">FILLED</text>
+  <text x="520" y="325" class="state-details">• Fully executed</text>
+  <text x="520" y="340" class="state-details">• All qty traded</text>
+  <text x="520" y="355" class="state-details">• Final avg price set</text>
+  <text x="520" y="370" class="state-details">• Position updated</text>
+
+  <!-- State: Canceled -->
+  <rect x="740" y="280" width="180" height="100" rx="5" fill="#ef5350" stroke="#c62828" stroke-width="2"/>
+  <text x="830" y="305" class="state-text">CANCELED</text>
+  <text x="750" y="325" class="state-details">• User/System cancel</text>
+  <text x="750" y="340" class="state-details">• Cancel ack received</text>
+  <text x="750" y="355" class="state-details">• No further fills</text>
+  <text x="750" y="370" class="state-details">• Unfilled qty lost</text>
+
+  <!-- State: Rejected -->
+  <rect x="970" y="280" width="180" height="100" rx="5" fill="#ef5350" stroke="#c62828" stroke-width="2"/>
+  <text x="1060" y="305" class="state-text">REJECTED</text>
+  <text x="980" y="325" class="state-details">• Venue/Risk rejection</text>
+  <text x="980" y="340" class="state-details">• Reason code provided</text>
+  <text x="980" y="355" class="state-details">• No execution</text>
+  <text x="980" y="370" class="state-details">• Terminal state</text>
+
+  <!-- State: Replaced/Modified -->
+  <rect x="280" y="280" width="180" height="100" rx="5" fill="#ffa726" stroke="#f57c00" stroke-width="2"/>
+  <text x="370" y="305" class="state-text">REPLACED</text>
+  <text x="290" y="325" class="state-details">• Modified price/qty</text>
+  <text x="290" y="340" class="state-details">• New ClOrdID</text>
+  <text x="290" y="355" class="state-details">• Original canceled</text>
+  <text x="290" y="370" class="state-details">• Ack pending</text>
+
+  <!-- State: Expired -->
+  <rect x="50" y="280" width="180" height="100" rx="5" fill="#bdbdbd" stroke="#757575" stroke-width="2"/>
+  <text x="140" y="305" class="state-text">EXPIRED</text>
+  <text x="60" y="325" class="state-details">• Time-in-force reached</text>
+  <text x="60" y="340" class="state-details">• GTD/IOC/FOK expired</text>
+  <text x="60" y="355" class="state-details">• Auto-canceled</text>
+  <text x="60" y="370" class="state-details">• No fills received</text>
+
+  <!-- Arrows: Forward flow -->
+  <path class="arrow" d="M 230 150 L 280 150"/>
+  <text x="255" y="140" class="arrow-label">validate</text>
+
+  <path class="arrow" d="M 460 150 L 510 150"/>
+  <text x="485" y="140" class="arrow-label">route</text>
+
+  <path class="arrow" d="M 690 150 L 740 150"/>
+  <text x="715" y="140" class="arrow-label">ack</text>
+
+  <path class="arrow" d="M 920 150 L 970 150"/>
+  <text x="945" y="140" class="arrow-label">fill</text>
+
+  <path class="arrow" d="M 1060 200 L 1060 230 L 600 230 L 600 280"/>
+  <text x="820" y="225" class="arrow-label">complete fill</text>
+
+  <path class="arrow" d="M 1060 200 L 1060 250"/>
+  <path class="arrow" d="M 1060 250 L 1060 280"/>
+  <text x="1070" y="240" class="arrow-label">cancel</text>
+
+  <!-- Arrows: Reject paths -->
+  <path class="arrow" d="M 140 200 L 140 240 L 1060 240 L 1060 280"/>
+  <text x="600" y="235" class="arrow-label">reject (validation)</text>
+
+  <path class="arrow" d="M 600 200 L 600 240 L 1060 240"/>
+  <text x="830" y="235" class="arrow-label">reject (routing)</text>
+
+  <!-- Arrows: Cancel paths -->
+  <path class="arrow" d="M 830 200 L 830 280"/>
+  <text x="840" y="240" class="arrow-label">cancel req</text>
+
+  <!-- Arrow: Replace -->
+  <path class="arrow" d="M 370 200 L 370 280"/>
+  <text x="380" y="240" class="arrow-label">replace req</text>
+
+  <path class="arrow" d="M 280 330 L 230 330 L 230 150"/>
+  <text x="240" y="240" class="arrow-label">re-route</text>
+
+  <!-- Arrow: Expire -->
+  <path class="arrow" d="M 50 150 L 30 150 L 30 280 L 50 280"/>
+  <text x="10" y="220" class="arrow-label" transform="rotate(-90 10 220)">TIF expire</text>
+
+  <!-- Validation Section -->
+  <text x="50" y="440" class="section-title">Pre-Trade Validation Checks</text>
+  <rect x="50" y="450" width="550" height="180" rx="5" class="note-box"/>
+  <text x="60" y="470" class="note-text" font-weight="bold">Risk Engine validates before routing:</text>
+  <text x="70" y="490" class="note-text">1. Position Limits: Check if new position would exceed account/strategy limits</text>
+  <text x="70" y="505" class="note-text">2. Notional Caps: Verify total order value within allowed range</text>
+  <text x="70" y="520" class="note-text">3. Restricted List: Ensure instrument not on do-not-trade list (compliance/Chinese walls)</text>
+  <text x="70" y="535" class="note-text">4. Margin/Cash: Confirm sufficient buying power (for long) or locate (for short)</text>
+  <text x="70" y="550" class="note-text">5. Duplicate Detection: Check for inadvertent re-submission of same order</text>
+  <text x="70" y="565" class="note-text">6. Instrument Master: Validate symbol, exchange, trading hours, lot size</text>
+  <text x="70" y="580" class="note-text">7. Sanity Checks: Price tolerance (avoid fat-finger errors), min/max qty</text>
+  <text x="70" y="595" class="note-text">8. Authorization: Verify user has permission to trade this instrument/account</text>
+  <text x="60" y="615" class="note-text" font-weight="bold" fill="#d32f2f">If any check fails → transition to REJECTED with reason code</text>
+
+  <!-- Fill Handling Section -->
+  <text x="650" y="440" class="section-title">Fill Aggregation & Position Update</text>
+  <rect x="650" y="450" width="500" height="180" rx="5" class="note-box"/>
+  <text x="660" y="470" class="note-text" font-weight="bold">On fill notification (execution report):</text>
+  <text x="670" y="490" class="note-text">1. Match fill to parent order via ClOrdID / ExecID</text>
+  <text x="670" y="505" class="note-text">2. Update cumulative filled qty and calculate avg price:</text>
+  <text x="680" y="520" class="note-text">   AvgPx = (Σ FillQty × FillPrice) / Σ FillQty</text>
+  <text x="670" y="535" class="note-text">3. Update order state: PARTIALLY_FILLED or FILLED (if all qty done)</text>
+  <text x="670" y="550" class="note-text">4. Send fill event to Position Manager to update net position</text>
+  <text x="670" y="565" class="note-text">5. Publish fill to downstream: P&amp;L calculator, blotter UI, audit log</text>
+  <text x="670" y="580" class="note-text">6. For multi-leg orders (baskets): aggregate across all child orders</text>
+  <text x="670" y="595" class="note-text">7. TCA: record execution timestamp, venue, price for slippage analysis</text>
+  <text x="660" y="615" class="note-text" font-weight="bold" fill="#388e3c">Real-time update latency target: &lt; 5ms from fill receipt to UI</text>
+
+  <!-- Cancel/Replace Section -->
+  <text x="50" y="670" class="section-title">Cancel &amp; Replace (Modify) Workflow</text>
+  <rect x="50" y="680" width="1100" height="120" rx="5" class="note-box"/>
+  <text x="60" y="700" class="note-text" font-weight="bold">Cancel Request:</text>
+  <text x="70" y="715" class="note-text">• User/Algo sends cancel → EMS validates order is live → Send FIX CancelRequest (35=F) to venue</text>
+  <text x="70" y="730" class="note-text">• Venue responds: CancelAck → transition to CANCELED | CancelReject → remains LIVE (race: already filled)</text>
+  
+  <text x="60" y="750" class="note-text" font-weight="bold">Replace/Modify Request:</text>
+  <text x="70" y="765" class="note-text">• User changes price or qty → EMS sends FIX CancelReplaceRequest (35=G) with new ClOrdID</text>
+  <text x="70" y="780" class="note-text">• Venue: ReplaceAck → original canceled, new order live (REPLACED → ACCEPTED) | ReplaceReject → original remains unchanged</text>
+  <text x="70" y="795" class="note-text">• Note: Some venues treat replace as cancel+new (may lose queue position); others preserve priority</text>
+
+  <!-- Legend -->
+  <rect x="50" y="820" width="1100" height="60" rx="5" fill="#f5f5f5" stroke="#999" stroke-width="1"/>
+  <text x="600" y="840" class="note-text" text-anchor="middle" font-weight="bold">State Color Legend:</text>
+  <rect x="200" y="850" width="15" height="15" fill="#42a5f5" stroke="#1976d2"/>
+  <text x="220" y="862" class="note-text">Active/In-flight states</text>
+  <rect x="380" y="850" width="15" height="15" fill="#66bb6a" stroke="#388e3c"/>
+  <text x="400" y="862" class="note-text">Success (Filled)</text>
+  <rect x="530" y="850" width="15" height="15" fill="#ef5350" stroke="#c62828"/>
+  <text x="550" y="862" class="note-text">Terminal Failure (Rejected/Canceled)</text>
+  <rect x="740" y="850" width="15" height="15" fill="#ffa726" stroke="#f57c00"/>
+  <text x="760" y="862" class="note-text">Replaced/Modified</text>
+  <rect x="920" y="850" width="15" height="15" fill="#bdbdbd" stroke="#757575"/>
+  <text x="940" y="862" class="note-text">Expired</text>
+
+</svg>
