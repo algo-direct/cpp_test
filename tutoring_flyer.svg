@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B6B;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#4ECDC4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#45B7D1;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6C5CE7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A29BFE;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="priceGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FDCB6E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F39C12;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="1000" fill="url(#bgGradient)"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="100" cy="100" r="80" fill="#FFE66D" opacity="0.3"/>
+  <circle cx="700" cy="900" r="100" fill="#FF6B6B" opacity="0.3"/>
+  <circle cx="650" cy="150" r="60" fill="#4ECDC4" opacity="0.4"/>
+  <circle cx="150" cy="850" r="50" fill="#A29BFE" opacity="0.3"/>
+  <circle cx="720" cy="300" r="70" fill="#FDCB6E" opacity="0.3"/>
+  
+  <!-- Main content card -->
+  <rect x="40" y="80" width="720" height="840" rx="20" fill="#ffffff" filter="url(#shadow)"/>
+  
+  <!-- Header Section -->
+  <rect x="40" y="80" width="720" height="180" rx="20" fill="url(#headerGradient)"/>
+  <text x="400" y="150" font-family="Arial, sans-serif" font-size="48" font-weight="bold" 
+        fill="#FFE66D" text-anchor="middle">ONLINE TUTORING</text>
+  <text x="400" y="200" font-family="Arial, sans-serif" font-size="28" font-weight="bold" 
+        fill="#ffffff" text-anchor="middle">Classes Available Now!</text>
+  
+  <!-- Icon: Book -->
+  <g transform="translate(360, 290)">
+    <rect x="0" y="0" width="80" height="60" rx="5" fill="#FF6B6B"/>
+    <rect x="10" y="10" width="60" height="50" rx="3" fill="#ffffff"/>
+    <line x1="40" y1="10" x2="40" y2="60" stroke="#FF6B6B" stroke-width="2"/>
+    <line x1="20" y1="25" x2="35" y2="25" stroke="#6C5CE7" stroke-width="1.5"/>
+    <line x1="45" y1="25" x2="60" y2="25" stroke="#6C5CE7" stroke-width="1.5"/>
+    <line x1="20" y1="35" x2="35" y2="35" stroke="#4ECDC4" stroke-width="1.5"/>
+    <line x1="45" y1="35" x2="60" y2="35" stroke="#4ECDC4" stroke-width="1.5"/>
+    <line x1="20" y1="45" x2="35" y2="45" stroke="#FF6B6B" stroke-width="1.5"/>
+    <line x1="45" y1="45" x2="60" y2="45" stroke="#FF6B6B" stroke-width="1.5"/>
+  </g>
+  
+  <!-- Services Section -->
+  <text x="400" y="400" font-family="Arial, sans-serif" font-size="32" font-weight="bold" 
+        fill="#2C3E50" text-anchor="middle">Our Services</text>
+  
+  <!-- Service 1 -->
+  <circle cx="120" cy="480" r="8" fill="#FF6B6B"/>
+  <text x="150" y="490" font-family="Arial, sans-serif" font-size="24" fill="#34495E">
+    <tspan font-weight="bold" fill="#FF6B6B">Grades 1-12</tspan> - All Subjects
+  </text>
+  
+  <!-- Service 2 -->
+  <circle cx="120" cy="530" r="8" fill="#6C5CE7"/>
+  <text x="150" y="540" font-family="Arial, sans-serif" font-size="24" fill="#34495E">
+    <tspan font-weight="bold" fill="#6C5CE7">Spoken English</tspan> Classes
+  </text>
+  
+  <!-- Service 3 -->
+  <circle cx="120" cy="580" r="8" fill="#4ECDC4"/>
+  <text x="150" y="590" font-family="Arial, sans-serif" font-size="24" fill="#34495E">
+    <tspan font-weight="bold" fill="#4ECDC4">Personalized</tspan> Learning Plans
+  </text>
+  
+  <!-- Service 4 -->
+  <circle cx="120" cy="630" r="8" fill="#FDCB6E"/>
+  <text x="150" y="640" font-family="Arial, sans-serif" font-size="24" fill="#34495E">
+    <tspan font-weight="bold" fill="#F39C12">Experienced</tspan> Tutors
+  </text>
+  
+  <!-- Pricing Section -->
+  <rect x="150" y="680" width="500" height="100" rx="15" fill="url(#priceGradient)" filter="url(#shadow)"/>
+  <text x="400" y="720" font-family="Arial, sans-serif" font-size="28" font-weight="bold" 
+        fill="#2C3E50" text-anchor="middle">Special Offer</text>
+  <text x="400" y="755" font-family="Arial, sans-serif" font-size="36" font-weight="bold" 
+        fill="#ffffff" text-anchor="middle">₹1,000 per month</text>
+  
+  <!-- Contact Section -->
+  <rect x="80" y="810" width="640" height="100" rx="10" fill="#ECF0F1"/>
+  <text x="400" y="835" font-family="Arial, sans-serif" font-size="22" font-weight="bold" 
+        fill="#2C3E50" text-anchor="middle">Contact Us Today!</text>
+  <text x="400" y="865" font-family="Arial, sans-serif" font-size="20" 
+        fill="#6C5CE7" text-anchor="middle" font-weight="bold">📞 +91 6280345896</text>
+  <text x="400" y="895" font-family="Arial, sans-serif" font-size="18" 
+        fill="#FF6B6B" text-anchor="middle" font-weight="bold">✉️ randhawameenu1@gmail.com</text>
+  
+  <!-- Footer -->
+  <text x="400" y="945" font-family="Arial, sans-serif" font-size="16" 
+        fill="#7F8C8D" text-anchor="middle">Limited seats available • Enroll now!</text>
+  
+  <!-- Decorative corner elements -->
+  <path d="M 60 100 L 80 100 L 80 120" stroke="#FFE66D" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 740 100 L 720 100 L 720 120" stroke="#FF6B6B" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 60 900 L 80 900 L 80 880" stroke="#4ECDC4" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 740 900 L 720 900 L 720 880" stroke="#6C5CE7" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>

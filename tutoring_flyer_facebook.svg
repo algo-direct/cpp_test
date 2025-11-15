@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bgGradientFB" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF6B6B;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#4ECDC4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#45B7D1;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="headerGradientFB" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6C5CE7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A29BFE;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="priceGradientFB" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FDCB6E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F39C12;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadowFB">
+      <feDropShadow dx="2" dy="2" stdDeviation="4" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradientFB)"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="100" cy="100" r="80" fill="#FFE66D" opacity="0.3"/>
+  <circle cx="1100" cy="530" r="100" fill="#FF6B6B" opacity="0.3"/>
+  <circle cx="1050" cy="120" r="70" fill="#4ECDC4" opacity="0.4"/>
+  <circle cx="150" cy="530" r="60" fill="#A29BFE" opacity="0.3"/>
+  
+  <!-- Left Section - Main Message -->
+  <g>
+    <!-- Header -->
+    <rect x="40" y="60" width="520" height="120" rx="20" fill="url(#headerGradientFB)" filter="url(#shadowFB)"/>
+    <text x="300" y="115" font-family="Arial, sans-serif" font-size="48" font-weight="bold" 
+          fill="#FFE66D" text-anchor="middle">ONLINE</text>
+    <text x="300" y="160" font-family="Arial, sans-serif" font-size="48" font-weight="bold" 
+          fill="#ffffff" text-anchor="middle">TUTORING</text>
+    
+    <!-- Services -->
+    <g transform="translate(60, 210)">
+      <circle cx="0" cy="15" r="8" fill="#FF6B6B"/>
+      <text x="25" y="23" font-family="Arial, sans-serif" font-size="22" fill="#ffffff" font-weight="bold">
+        Grades 1-12 - All Subjects
+      </text>
+      
+      <circle cx="0" cy="55" r="8" fill="#6C5CE7"/>
+      <text x="25" y="63" font-family="Arial, sans-serif" font-size="22" fill="#ffffff" font-weight="bold">
+        Spoken English Classes
+      </text>
+      
+      <circle cx="0" cy="95" r="8" fill="#4ECDC4"/>
+      <text x="25" y="103" font-family="Arial, sans-serif" font-size="22" fill="#ffffff" font-weight="bold">
+        Personalized Learning
+      </text>
+      
+      <circle cx="0" cy="135" r="8" fill="#FDCB6E"/>
+      <text x="25" y="143" font-family="Arial, sans-serif" font-size="22" fill="#ffffff" font-weight="bold">
+        Experienced Tutors
+      </text>
+    </g>
+    
+    <!-- Contact -->
+    <g transform="translate(60, 390)">
+      <text x="0" y="0" font-family="Arial, sans-serif" font-size="24" fill="#ffffff" font-weight="bold">
+        📞 +91 6280345896
+      </text>
+      <text x="0" y="35" font-family="Arial, sans-serif" font-size="20" fill="#FFE66D" font-weight="bold">
+        ✉️ randhawameenu1@gmail.com
+      </text>
+    </g>
+  </g>
+  
+  <!-- Right Section - Price & CTA -->
+  <g>
+    <!-- Price Card -->
+    <rect x="620" y="150" width="520" height="330" rx="25" fill="#ffffff" filter="url(#shadowFB)"/>
+    
+    <!-- Book Icon -->
+    <g transform="translate(750, 190)">
+      <rect x="0" y="0" width="100" height="75" rx="8" fill="#FF6B6B"/>
+      <rect x="12" y="12" width="76" height="63" rx="5" fill="#ffffff"/>
+      <line x1="50" y1="12" x2="50" y2="75" stroke="#FF6B6B" stroke-width="3"/>
+      <line x1="25" y1="30" x2="45" y2="30" stroke="#6C5CE7" stroke-width="2"/>
+      <line x1="55" y1="30" x2="75" y2="30" stroke="#6C5CE7" stroke-width="2"/>
+      <line x1="25" y1="45" x2="45" y2="45" stroke="#4ECDC4" stroke-width="2"/>
+      <line x1="55" y1="45" x2="75" y2="45" stroke="#4ECDC4" stroke-width="2"/>
+      <line x1="25" y1="60" x2="45" y2="60" stroke="#FF6B6B" stroke-width="2"/>
+      <line x1="55" y1="60" x2="75" y2="60" stroke="#FF6B6B" stroke-width="2"/>
+    </g>
+    
+    <text x="880" y="310" font-family="Arial, sans-serif" font-size="32" font-weight="bold" 
+          fill="#2C3E50" text-anchor="middle">Special Offer</text>
+    
+    <!-- Price Badge -->
+    <rect x="690" y="335" width="380" height="85" rx="15" fill="url(#priceGradientFB)" filter="url(#shadowFB)"/>
+    <text x="880" y="390" font-family="Arial, sans-serif" font-size="42" font-weight="bold" 
+          fill="#ffffff" text-anchor="middle">₹1,000/month</text>
+    
+    <text x="880" y="455" font-family="Arial, sans-serif" font-size="20" font-weight="bold" 
+          fill="#6C5CE7" text-anchor="middle">Limited Seats Available!</text>
+  </g>
+  
+  <!-- Decorative corners -->
+  <path d="M 50 70 L 70 70 L 70 90" stroke="#FFE66D" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 1150 70 L 1130 70 L 1130 90" stroke="#FF6B6B" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 50 560 L 70 560 L 70 540" stroke="#4ECDC4" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 1150 560 L 1130 560 L 1130 540" stroke="#6C5CE7" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>
