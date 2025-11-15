@@ -43,9 +43,9 @@
     <!-- Logo/Brand Area -->
     <rect x="140" y="120" width="800" height="150" rx="25" fill="#ffffff" opacity="0.95" filter="url(#shadowStory)"/>
     <text x="540" y="180" font-family="Arial, sans-serif" font-size="56" font-weight="bold" 
-          fill="#6C5CE7" text-anchor="middle">ONLINE</text>
+          fill="#6C5CE7" text-anchor="middle">YOUR ENGLISH</text>
     <text x="540" y="240" font-family="Arial, sans-serif" font-size="56" font-weight="bold" 
-          fill="#FF6B6B" text-anchor="middle">TUTORING</text>
+          fill="#FF6B6B" text-anchor="middle">TUTOR</text>
     
     <!-- Subtitle -->
     <text x="540" y="320" font-family="Arial, sans-serif" font-size="32" font-weight="bold" 
@@ -122,9 +122,9 @@
     
     <rect x="150" y="30" width="780" height="100" rx="15" fill="#F8F9FA"/>
     <text x="540" y="70" font-family="Arial, sans-serif" font-size="32" font-weight="bold" 
-          fill="#6C5CE7" text-anchor="middle">📞 +91 6280345896</text>
-    <text x="540" y="115" font-family="Arial, sans-serif" font-size="28" font-weight="bold" 
-          fill="#FF6B6B" text-anchor="middle">✉️ randhawameenu1@gmail.com</text>
+          fill="#6C5CE7" text-anchor="middle">📞 6280345896</text>
+    <text x="540" y="115" font-family="Arial, sans-serif" font-size="26" font-weight="bold" 
+          fill="#FF6B6B" text-anchor="middle">randhawameenu1@gmail.com</text>
   </g>
   
   <!-- Call to Action -->

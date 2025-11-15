@@ -33,9 +33,9 @@
   <rect x="40" y="80" width="720" height="840" rx="20" fill="#ffffff" filter="url(#shadow)"/>
   
   <!-- Header Section -->
-  <rect x="40" y="80" width="720" height="180" rx="20" fill="url(#headerGradient)"/>
+  <rect x="40" y="80" width="720" height="180" rx="20" fill="url(#headerGradientIG)"/>
   <text x="400" y="150" font-family="Arial, sans-serif" font-size="48" font-weight="bold" 
-        fill="#FFE66D" text-anchor="middle">ONLINE TUTORING</text>
+        fill="#FFE66D" text-anchor="middle">YOUR ENGLISH TUTOR</text>
   <text x="400" y="200" font-family="Arial, sans-serif" font-size="28" font-weight="bold" 
         fill="#ffffff" text-anchor="middle">Classes Available Now!</text>
   
@@ -92,7 +92,7 @@
   <text x="400" y="835" font-family="Arial, sans-serif" font-size="22" font-weight="bold" 
         fill="#2C3E50" text-anchor="middle">Contact Us Today!</text>
   <text x="400" y="865" font-family="Arial, sans-serif" font-size="20" 
-        fill="#6C5CE7" text-anchor="middle" font-weight="bold">📞 +91 6280345896</text>
+        fill="#6C5CE7" text-anchor="middle" font-weight="bold">📞 6280345896</text>
   <text x="400" y="895" font-family="Arial, sans-serif" font-size="18" 
         fill="#FF6B6B" text-anchor="middle" font-weight="bold">✉️ randhawameenu1@gmail.com</text>
   
