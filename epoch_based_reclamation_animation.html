@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epoch-Based Reclamation Animation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #11998e;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        
+        #canvas {
+            display: block;
+            margin: 20px auto;
+            border: 3px solid #11998e;
+            border-radius: 10px;
+            background: #f0fff4;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: white;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(17, 153, 142, 0.6);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .status {
+            background: #e6f7ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #11998e;
+            font-family: monospace;
+            line-height: 1.8;
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f0fff4;
+            border-radius: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 35px;
+            height: 35px;
+            border-radius: 5px;
+            border: 2px solid #333;
+        }
+        
+        .info {
+            background: #fff9e6;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #f39c12;
+        }
+        
+        .info h3 {
+            color: #e67e22;
+            margin-bottom: 15px;
+        }
+        
+        .info ol, .info ul {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .step-highlight {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #28a745;
+            font-weight: bold;
+            color: #155724;
+        }
+        
+        .epoch-display {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #fff3cd;
+            border-radius: 10px;
+            border: 2px solid #ffc107;
+        }
+        
+        .epoch-box {
+            text-align: center;
+            padding: 15px 25px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .epoch-box .label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .epoch-box .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #11998e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏰ Epoch-Based Reclamation Animation</h1>
+        <div class="subtitle">Grace-Period Memory Management for Lock-Free Data Structures</div>
+        
+        <div class="epoch-display">
+            <div class="epoch-box">
+                <div class="label">Global Epoch</div>
+                <div class="value" id="globalEpoch">0</div>
+            </div>
+            <div class="epoch-box">
+                <div class="label">Active Threads</div>
+                <div class="value" id="activeThreads">0</div>
+            </div>
+            <div class="epoch-box">
+                <div class="label">Pending Deletions</div>
+                <div class="value" id="pendingNodes">0</div>
+            </div>
+        </div>
+        
+        <canvas id="canvas" width="1300" height="700"></canvas>
+        
+        <div class="controls">
+            <button onclick="resetAnimation()">🔄 Reset</button>
+            <button onclick="nextStep()">▶️ Next Step</button>
+            <button onclick="toggleAutoPlay()">⏯️ Auto Play</button>
+            <button onclick="advanceEpoch()">⏩ Advance Epoch</button>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #3498db, #2980b9);"></div>
+                <span><strong>Active Node</strong> - Currently in use</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #e74c3c, #c0392b);"></div>
+                <span><strong>Retired Node</strong> - Marked for deletion</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #95a5a6;"></div>
+                <span><strong>Deleted Node</strong> - Memory freed</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #2ecc71, #27ae60);"></div>
+                <span><strong>Thread</strong> - Executing operations</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);"></div>
+                <span><strong>Epoch Bag</strong> - Nodes waiting for grace period</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f39c12;"></div>
+                <span><strong>Local Epoch</strong> - Thread's epoch snapshot</span>
+            </div>
+        </div>
+        
+        <div class="step-highlight" id="stepInfo">
+            Click "Next Step" or "Auto Play" to see epoch-based reclamation in action!
+        </div>
+        
+        <div class="status" id="status">
+<strong>Status:</strong> Ready to demonstrate epoch-based reclamation
+<strong>How it works:</strong>
+1. Global epoch advances periodically (e.g., every 100ms)
+2. Threads pin their local epoch when starting operations
+3. Retired nodes go into epoch bags (not freed immediately)
+4. Nodes can be freed when ALL threads have moved past that epoch
+5. Grace period = Time for all threads to advance epochs
+        </div>
+        
+        <div class="info">
+            <h3>📚 Epoch-Based Reclamation Explained</h3>
+            
+            <p><strong>The Problem:</strong> In lock-free data structures, we can't free memory immediately 
+            because other threads might still be accessing it. We need a "grace period" before deletion is safe.</p>
+            
+            <p><strong>The Solution - Epochs:</strong></p>
+            <ol>
+                <li><strong>Global Epoch Counter:</strong> A monotonically increasing counter (0, 1, 2, 3...)</li>
+                <li><strong>Thread Local Epochs:</strong> Each thread "pins" the current epoch when it starts an operation</li>
+                <li><strong>Retirement:</strong> Deleted nodes go into an "epoch bag" tagged with the current epoch</li>
+                <li><strong>Grace Period:</strong> When ALL threads have advanced past epoch N, we can safely free nodes from epoch N-2</li>
+                <li><strong>Automatic Cleanup:</strong> Periodically advance the global epoch and reclaim old epoch bags</li>
+            </ol>
+            
+            <p><strong>Key Insight:</strong> If all threads have moved from epoch 0 to epoch 2, any nodes retired in epoch 0 
+            are guaranteed to be unreachable. The "lag" of 2 epochs provides the grace period!</p>
+            
+            <p><strong>Advantages over Hazard Pointers:</strong></p>
+            <ul>
+                <li>✅ No per-pointer protection overhead</li>
+                <li>✅ Simpler implementation - just track one epoch per thread</li>
+                <li>✅ Bounded memory usage - old epochs are automatically reclaimed</li>
+                <li>✅ Better cache locality - batch deletion of nodes</li>
+            </ul>
+            
+            <p><strong>Trade-off:</strong> May delay reclamation longer than hazard pointers, but much simpler!</p>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let canvas, ctx;
+        let globalEpoch = 0;
+        let nodes = [];
+        let threads = [];
+        let epochBags = {}; // epoch -> array of node IDs
+        let currentStep = 0;
+        let autoPlayTimer = null;
+        
+        // Node class
+        class Node {
+            constructor(id, x, y) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.state = 'active'; // active, retired, deleted
+                this.retiredEpoch = null;
+                this.value = Math.floor(Math.random() * 100);
+            }
+        }
+        
+        // Thread class
+        class Thread {
+            constructor(id, x, y, color) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.localEpoch = null; // null = not in critical section
+                this.active = false;
+            }
+        }
+        
+        // Initialize
+        window.onload = function() {
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            resetAnimation();
+            updateStatus('Epoch-based reclamation ready. Click Next Step to begin!');
+        };
+        
+        function resetAnimation() {
+            globalEpoch = 0;
+            nodes = [];
+            threads = [];
+            epochBags = {};
+            currentStep = 0;
+            
+            // Create nodes
+            for (let i = 0; i < 6; i++) {
+                nodes.push(new Node(i, 150 + i * 180, 120));
+            }
+            
+            // Create threads
+            const colors = ['#2ecc71', '#e67e22', '#3498db', '#9b59b6'];
+            for (let i = 0; i < 4; i++) {
+                threads.push(new Thread(i, 200 + i * 250, 400, colors[i]));
+            }
+            
+            if (autoPlayTimer) {
+                clearInterval(autoPlayTimer);
+                autoPlayTimer = null;
+            }
+            
+            updateEpochDisplay();
+            draw();
+            updateStatus('Reset complete. 6 nodes, 4 threads, epoch = 0');
+        }
+        
+        function nextStep() {
+            const steps = [
+                () => {
+                    enterCritical(0);
+                    updateStatus('Thread 0 enters critical section → pins local epoch = 0');
+                },
+                () => {
+                    enterCritical(1);
+                    updateStatus('Thread 1 enters critical section → pins local epoch = 0');
+                },
+                () => {
+                    retireNode(2, 'Thread 0 retires Node 2 → added to epoch 0 bag');
+                },
+                () => {
+                    advanceEpoch();
+                    updateStatus('Global epoch advances: 0 → 1');
+                },
+                () => {
+                    enterCritical(2);
+                    updateStatus('Thread 2 enters critical section → pins local epoch = 1');
+                },
+                () => {
+                    exitCritical(0);
+                    updateStatus('Thread 0 exits critical section → unpins epoch');
+                },
+                () => {
+                    retireNode(4, 'Thread 2 retires Node 4 → added to epoch 1 bag');
+                },
+                () => {
+                    advanceEpoch();
+                    updateStatus('Global epoch advances: 1 → 2. Thread 1 still at epoch 0!');
+                },
+                () => {
+                    enterCritical(3);
+                    updateStatus('Thread 3 enters critical section → pins local epoch = 2');
+                },
+                () => {
+                    exitCritical(1);
+                    updateStatus('Thread 1 exits (was holding epoch 0)');
+                },
+                () => {
+                    advanceEpoch();
+                    tryReclaim();
+                    updateStatus('Epoch 2 → 3. All threads past epoch 0 → RECLAIM epoch 0 bag (Node 2)!');
+                },
+                () => {
+                    retireNode(0, 'Thread 3 retires Node 0 → added to epoch 3 bag');
+                },
+                () => {
+                    exitCritical(2);
+                    updateStatus('Thread 2 exits (was at epoch 1)');
+                },
+                () => {
+                    advanceEpoch();
+                    tryReclaim();
+                    updateStatus('Epoch 3 → 4. All threads past epoch 1 → RECLAIM epoch 1 bag (Node 4)!');
+                },
+                () => {
+                    exitCritical(3);
+                    updateStatus('Thread 3 exits');
+                },
+                () => {
+                    advanceEpoch();
+                    tryReclaim();
+                    updateStatus('Epoch 4 → 5. All threads past epoch 3 → RECLAIM epoch 3 bag (Node 0)!');
+                },
+                () => {
+                    updateStatus('✅ Complete! All retired nodes safely freed after grace period.');
+                }
+            ];
+            
+            if (currentStep < steps.length) {
+                steps[currentStep]();
+                currentStep++;
+                updateEpochDisplay();
+                draw();
+            }
+        }
+        
+        function toggleAutoPlay() {
+            if (autoPlayTimer) {
+                clearInterval(autoPlayTimer);
+                autoPlayTimer = null;
+                updateStatus('Auto-play stopped');
+            } else {
+                autoPlayTimer = setInterval(() => {
+                    nextStep();
+                    if (currentStep >= 17) {
+                        clearInterval(autoPlayTimer);
+                        autoPlayTimer = null;
+                    }
+                }, 2000);
+                updateStatus('Auto-play started (2s per step)');
+            }
+        }
+        
+        function enterCritical(threadId) {
+            threads[threadId].active = true;
+            threads[threadId].localEpoch = globalEpoch;
+        }
+        
+        function exitCritical(threadId) {
+            threads[threadId].active = false;
+            threads[threadId].localEpoch = null;
+        }
+        
+        function retireNode(nodeId, msg) {
+            if (nodes[nodeId].state === 'active') {
+                nodes[nodeId].state = 'retired';
+                nodes[nodeId].retiredEpoch = globalEpoch;
+                
+                if (!epochBags[globalEpoch]) {
+                    epochBags[globalEpoch] = [];
+                }
+                epochBags[globalEpoch].push(nodeId);
+                
+                updateStatus(msg);
+            }
+        }
+        
+        function advanceEpoch() {
+            globalEpoch++;
+        }
+        
+        function tryReclaim() {
+            // Find minimum epoch among active threads
+            let minEpoch = globalEpoch;
+            let hasActive = false;
+            threads.forEach(t => {
+                if (t.active && t.localEpoch !== null) {
+                    hasActive = true;
+                    minEpoch = Math.min(minEpoch, t.localEpoch);
+                }
+            });
+            
+            if (!hasActive) {
+                minEpoch = globalEpoch;
+            }
+            
+            // Safe to reclaim epochs that are < minEpoch - 1
+            const safeEpoch = minEpoch - 2;
+            
+            Object.keys(epochBags).forEach(epoch => {
+                epoch = parseInt(epoch);
+                if (epoch <= safeEpoch) {
+                    epochBags[epoch].forEach(nodeId => {
+                        nodes[nodeId].state = 'deleted';
+                    });
+                    delete epochBags[epoch];
+                }
+            });
+        }
+        
+        function updateEpochDisplay() {
+            document.getElementById('globalEpoch').textContent = globalEpoch;
+            
+            const activeCount = threads.filter(t => t.active).length;
+            document.getElementById('activeThreads').textContent = activeCount;
+            
+            let pendingCount = 0;
+            Object.values(epochBags).forEach(bag => pendingCount += bag.length);
+            document.getElementById('pendingNodes').textContent = pendingCount;
+        }
+        
+        function draw() {
+            // Clear
+            ctx.fillStyle = '#f0fff4';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw section labels
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 22px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Memory Nodes:', 20, 35);
+            ctx.fillText('Threads:', 20, 350);
+            ctx.fillText('Epoch Bags (Retired Nodes):', 20, 530);
+            
+            // Draw nodes
+            nodes.forEach(node => {
+                const r = 38;
+                let color = '#3498db';
+                if (node.state === 'retired') color = '#e74c3c';
+                if (node.state === 'deleted') color = '#95a5a6';
+                
+                // Gradient
+                const gradient = ctx.createLinearGradient(node.x - r, node.y - r, node.x + r, node.y + r);
+                if (node.state === 'active') {
+                    gradient.addColorStop(0, '#3498db');
+                    gradient.addColorStop(1, '#2980b9');
+                } else if (node.state === 'retired') {
+                    gradient.addColorStop(0, '#e74c3c');
+                    gradient.addColorStop(1, '#c0392b');
+                } else {
+                    gradient.addColorStop(0, '#95a5a6');
+                    gradient.addColorStop(1, '#7f8c8d');
+                }
+                
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node.value, node.x, node.y - 5);
+                ctx.font = '12px Arial';
+                ctx.fillText(`N${node.id}`, node.x, node.y + 12);
+                
+                // Show retired epoch
+                if (node.state === 'retired' && node.retiredEpoch !== null) {
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.font = 'bold 11px Arial';
+                    ctx.fillText(`E${node.retiredEpoch}`, node.x, node.y + r + 18);
+                }
+            });
+            
+            // Draw threads
+            threads.forEach(thread => {
+                const s = 45;
+                
+                const gradient = ctx.createLinearGradient(thread.x - s/2, thread.y - s/2, 
+                                                         thread.x + s/2, thread.y + s/2);
+                const baseColor = thread.color;
+                gradient.addColorStop(0, baseColor);
+                gradient.addColorStop(1, adjustBrightness(baseColor, -20));
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(thread.x - s/2, thread.y - s/2, s, s);
+                ctx.strokeStyle = thread.active ? '#f39c12' : '#2c3e50';
+                ctx.lineWidth = thread.active ? 5 : 3;
+                ctx.strokeRect(thread.x - s/2, thread.y - s/2, s, s);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`T${thread.id}`, thread.x, thread.y);
+                
+                // Show local epoch
+                if (thread.active && thread.localEpoch !== null) {
+                    ctx.fillStyle = '#f39c12';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText(`E:${thread.localEpoch}`, thread.x, thread.y + s/2 + 20);
+                }
+            });
+            
+            // Draw epoch bags
+            let bagX = 50;
+            Object.keys(epochBags).sort((a, b) => a - b).forEach(epoch => {
+                const nodeIds = epochBags[epoch];
+                const bagW = 180;
+                const bagH = 120;
+                
+                const gradient = ctx.createLinearGradient(bagX, 560, bagX + bagW, 560 + bagH);
+                gradient.addColorStop(0, '#9b59b6');
+                gradient.addColorStop(1, '#8e44ad');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(bagX, 560, bagW, bagH);
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(bagX, 560, bagW, bagH);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Epoch ${epoch}`, bagX + bagW/2, 590);
+                
+                ctx.font = '14px Arial';
+                nodeIds.forEach((nid, i) => {
+                    ctx.fillText(`Node ${nid}`, bagX + bagW/2, 615 + i * 20);
+                });
+                
+                bagX += bagW + 20;
+            });
+        }
+        
+        function adjustBrightness(color, amount) {
+            const num = parseInt(color.slice(1), 16);
+            const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+            const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+            const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+            return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+        }
+        
+        function updateStatus(msg) {
+            const status = document.getElementById('status');
+            status.innerHTML = '<strong>Status:</strong> ' + msg;
+        }
+    </script>
+</body>
+</html>

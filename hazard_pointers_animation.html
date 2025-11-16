@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hazard Pointers Animation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        
+        .canvas-container {
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            margin: 20px 0;
+            background: #f8f9ff;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            cursor: pointer;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f0f4ff;
+            border-radius: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            border: 2px solid #333;
+        }
+        
+        .status {
+            padding: 15px;
+            background: #e8f4f8;
+            border-left: 4px solid #667eea;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        
+        .explanation {
+            background: #fff9e6;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #ffd700;
+        }
+        
+        .explanation h3 {
+            color: #e67e22;
+            margin-top: 0;
+        }
+        
+        .step-info {
+            background: #e8f8f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #16a085;
+            font-weight: bold;
+            color: #16a085;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 Hazard Pointers Animation</h1>
+        <div class="subtitle">Safe Memory Reclamation in Lock-Free Data Structures</div>
+        
+        <div class="canvas-container">
+            <canvas id="canvas" width="1300" height="700"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button onclick="animation.reset()">🔄 Reset</button>
+            <button onclick="animation.step()">▶️ Next Step</button>
+            <button onclick="animation.autoPlay()">⏯️ Auto Play</button>
+            <button onclick="animation.addThread()">➕ Add Thread</button>
+            <button onclick="animation.retireNode()">🗑️ Retire Node</button>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #3498db;"></div>
+                <span><strong>Active Node</strong> - In use</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e74c3c;"></div>
+                <span><strong>Retired Node</strong> - Marked for deletion</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #95a5a6;"></div>
+                <span><strong>Deleted Node</strong> - Memory freed</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f39c12;"></div>
+                <span><strong>Hazard Pointer</strong> - Protected reference</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2ecc71;"></div>
+                <span><strong>Thread</strong> - Accessing nodes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #9b59b6;"></div>
+                <span><strong>Retire List</strong> - Pending deletion</span>
+            </div>
+        </div>
+        
+        <div class="step-info" id="stepInfo">
+            Click "Next Step" or "Auto Play" to see hazard pointers in action!
+        </div>
+        
+        <div class="status" id="status">
+            <strong>Status:</strong> Ready to start animation
+        </div>
+        
+        <div class="explanation">
+            <h3>📚 How Hazard Pointers Work</h3>
+            <p><strong>Problem:</strong> In lock-free data structures, threads access shared nodes concurrently. 
+            If we delete a node while another thread is reading it, we get use-after-free bugs!</p>
+            
+            <p><strong>Solution:</strong> Hazard Pointers protect nodes from deletion:</p>
+            <ol>
+                <li><strong>Acquire:</strong> Before accessing a node, a thread sets a hazard pointer to it</li>
+                <li><strong>Protect:</strong> The hazard pointer prevents other threads from freeing that node</li>
+                <li><strong>Retire:</strong> When deleting a node, add it to a retire list instead of freeing immediately</li>
+                <li><strong>Scan:</strong> Periodically scan all hazard pointers - only free nodes that aren't protected</li>
+                <li><strong>Release:</strong> When done, clear the hazard pointer to allow eventual deletion</li>
+            </ol>
+            
+            <p><strong>Key Insight:</strong> A node can only be freed if NO thread has a hazard pointer pointing to it.
+            This guarantees safe concurrent access without locks!</p>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+        
+        class Node {
+            constructor(id, x, y) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.state = 'active'; // active, retired, deleted
+                this.value = Math.floor(Math.random() * 100);
+            }
+            
+            draw(ctx) {
+                const radius = 35;
+                
+                // Node color based on state
+                let color = '#3498db'; // active
+                if (this.state === 'retired') color = '#e74c3c';
+                if (this.state === 'deleted') color = '#95a5a6';
+                
+                // Draw circle
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                // Draw value
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.value, this.x, this.y - 5);
+                
+                // Draw ID
+                ctx.font = '12px Arial';
+                ctx.fillText(`N${this.id}`, this.x, this.y + 10);
+                
+                // Draw state label
+                ctx.font = '10px Arial';
+                ctx.fillStyle = '#2c3e50';
+                ctx.fillText(this.state.toUpperCase(), this.x, this.y + radius + 15);
+            }
+        }
+        
+        class Thread {
+            constructor(id, x, y) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.hazardPtr = null; // Node reference
+                this.color = ['#2ecc71', '#e67e22', '#3498db', '#9b59b6'][id % 4];
+            }
+            
+            draw(ctx, nodes) {
+                const size = 40;
+                
+                // Draw thread box
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - size/2, this.y - size/2, size, size);
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(this.x - size/2, this.y - size/2, size, size);
+                
+                // Draw thread icon
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('T' + this.id, this.x, this.y);
+                
+                // Draw hazard pointer arrow if set
+                if (this.hazardPtr !== null) {
+                    const targetNode = nodes.find(n => n.id === this.hazardPtr);
+                    if (targetNode) {
+                        this.drawArrow(ctx, this.x, this.y + size/2, targetNode.x, targetNode.y, '#f39c12', 'HAZARD');
+                    }
+                }
+            }
+            
+            drawArrow(ctx, fromX, fromY, toX, toY, color, label) {
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+                ctx.lineWidth = 3;
+                
+                // Draw line
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+                
+                // Draw arrowhead
+                const angle = Math.atan2(toY - fromY, toX - fromX);
+                const headLen = 15;
+                ctx.beginPath();
+                ctx.moveTo(toX, toY);
+                ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI/6), toY - headLen * Math.sin(angle - Math.PI/6));
+                ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI/6), toY - headLen * Math.sin(angle + Math.PI/6));
+                ctx.closePath();
+                ctx.fill();
+                
+                // Draw label
+                const midX = (fromX + toX) / 2;
+                const midY = (fromY + toY) / 2;
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.font = 'bold 12px Arial';
+                ctx.strokeText(label, midX, midY - 10);
+                ctx.fillStyle = color;
+                ctx.fillText(label, midX, midY - 10);
+            }
+        }
+        
+        class HazardPointerAnimation {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                if (!this.canvas) {
+                    throw new Error('Canvas element not found');
+                }
+                
+                this.ctx = this.canvas.getContext('2d');
+                if (!this.ctx) {
+                    throw new Error('Could not get 2D context');
+                }
+                
+                this.nodes = [];
+                this.threads = [];
+                this.retireList = [];
+                this.step = 0;
+                this.autoPlayInterval = null;
+                this.nextNodeId = 0;
+                this.nextThreadId = 0;
+                
+                console.log('Initializing hazard pointer animation...');
+                this.reset();
+            }
+            
+            reset() {
+                this.nodes = [];
+                this.threads = [];
+                this.retireList = [];
+                this.step = 0;
+                this.nextNodeId = 0;
+                this.nextThreadId = 0;
+                
+                // Create initial nodes
+                for (let i = 0; i < 5; i++) {
+                    this.nodes.push(new Node(this.nextNodeId++, 150 + i * 150, 150));
+                }
+                
+                // Create initial threads
+                for (let i = 0; i < 3; i++) {
+                    this.threads.push(new Thread(this.nextThreadId++, 150 + i * 150, 450));
+                }
+                
+                this.updateStatus("System initialized with 5 nodes and 3 threads");
+                this.updateStepInfo("Ready to demonstrate hazard pointers");
+                this.draw();
+            }
+            
+            step() {
+                const actions = [
+                    () => this.actionSetHazard(0, 0),
+                    () => this.actionSetHazard(1, 2),
+                    () => this.actionSetHazard(2, 1),
+                    () => this.actionRetireNode(3),
+                    () => this.actionScan(),
+                    () => this.actionClearHazard(1),
+                    () => this.actionRetireNode(1),
+                    () => this.actionScan(),
+                    () => this.actionClearHazard(0),
+                    () => this.actionSetHazard(0, 4),
+                    () => this.actionRetireNode(0),
+                    () => this.actionScan(),
+                    () => this.actionClearHazard(2),
+                    () => this.actionClearHazard(0),
+                    () => this.actionScan(),
+                ];
+                
+                if (this.step < actions.length) {
+                    actions[this.step]();
+                    this.step++;
+                } else {
+                    this.updateStatus("Animation complete! Click Reset to start over.");
+                    this.updateStepInfo("All steps completed - retired nodes safely freed");
+                }
+                
+                this.draw();
+            }
+            
+            actionSetHazard(threadId, nodeId) {
+                if (threadId < this.threads.length && nodeId < this.nodes.length) {
+                    this.threads[threadId].hazardPtr = nodeId;
+                    this.updateStatus(`Thread ${threadId} sets hazard pointer to Node ${nodeId}`);
+                    this.updateStepInfo(`✅ Node ${nodeId} is now PROTECTED from deletion by Thread ${threadId}`);
+                }
+            }
+            
+            actionClearHazard(threadId) {
+                if (threadId < this.threads.length) {
+                    const oldPtr = this.threads[threadId].hazardPtr;
+                    this.threads[threadId].hazardPtr = null;
+                    this.updateStatus(`Thread ${threadId} clears hazard pointer (was Node ${oldPtr})`);
+                    this.updateStepInfo(`🔓 Thread ${threadId} no longer protects Node ${oldPtr}`);
+                }
+            }
+            
+            actionRetireNode(nodeId) {
+                if (nodeId < this.nodes.length && this.nodes[nodeId].state === 'active') {
+                    this.nodes[nodeId].state = 'retired';
+                    this.retireList.push(nodeId);
+                    this.updateStatus(`Node ${nodeId} retired - added to retire list (not freed yet!)`);
+                    this.updateStepInfo(`🗑️ Node ${nodeId} marked for deletion but NOT freed (may still be in use)`);
+                }
+            }
+            
+            actionScan() {
+                // Collect all hazard pointers
+                const protected = new Set();
+                this.threads.forEach(t => {
+                    if (t.hazardPtr !== null) {
+                        protected.add(t.hazardPtr);
+                    }
+                });
+                
+                // Try to free retired nodes that aren't protected
+                let freed = [];
+                this.retireList = this.retireList.filter(nodeId => {
+                    if (!protected.has(nodeId)) {
+                        this.nodes[nodeId].state = 'deleted';
+                        freed.push(nodeId);
+                        return false; // Remove from retire list
+                    }
+                    return true; // Keep in retire list
+                });
+                
+                if (freed.length > 0) {
+                    this.updateStatus(`Scan: Freed nodes ${freed.join(', ')} - no hazard pointers protecting them`);
+                    this.updateStepInfo(`✅ SAFE DELETE: Nodes ${freed.join(', ')} freed (no threads accessing them)`);
+                } else {
+                    this.updateStatus(`Scan: No nodes freed - all retired nodes still protected by hazards`);
+                    this.updateStepInfo(`⏳ CANNOT DELETE: All retired nodes still have hazard pointers`);
+                }
+            }
+            
+            addThread() {
+                if (this.threads.length < 6) {
+                    const x = 150 + (this.threads.length % 5) * 150;
+                    const y = 450 + Math.floor(this.threads.length / 5) * 100;
+                    this.threads.push(new Thread(this.nextThreadId++, x, y));
+                    this.updateStatus(`Added Thread ${this.nextThreadId - 1}`);
+                    this.draw();
+                }
+            }
+            
+            retireNode() {
+                const activeNodes = this.nodes.filter(n => n.state === 'active');
+                if (activeNodes.length > 0) {
+                    const node = activeNodes[Math.floor(Math.random() * activeNodes.length)];
+                    this.actionRetireNode(node.id);
+                    this.draw();
+                }
+            }
+            
+            autoPlay() {
+                if (this.autoPlayInterval) {
+                    clearInterval(this.autoPlayInterval);
+                    this.autoPlayInterval = null;
+                    this.updateStatus("Auto-play stopped");
+                } else {
+                    this.autoPlayInterval = setInterval(() => {
+                        this.step();
+                        if (this.step >= 15) {
+                            clearInterval(this.autoPlayInterval);
+                            this.autoPlayInterval = null;
+                        }
+                    }, 2000);
+                    this.updateStatus("Auto-play started");
+                }
+            }
+            
+            draw() {
+                // Clear canvas
+                this.ctx.fillStyle = '#f8f9ff';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw title sections
+                this.ctx.fillStyle = '#2c3e50';
+                this.ctx.font = 'bold 20px Arial';
+                this.ctx.fillText('Memory Nodes', 20, 30);
+                this.ctx.fillText('Threads with Hazard Pointers', 20, 400);
+                
+                // Draw retire list
+                this.ctx.fillText('Retire List:', 900, 30);
+                this.retireList.forEach((nodeId, i) => {
+                    this.ctx.fillStyle = '#9b59b6';
+                    this.ctx.fillRect(900, 50 + i * 30, 200, 25);
+                    this.ctx.strokeStyle = '#2c3e50';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeRect(900, 50 + i * 30, 200, 25);
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = 'bold 14px Arial';
+                    this.ctx.fillText(`Node ${nodeId} (pending)`, 1000, 67 + i * 30);
+                });
+                
+                // Draw all nodes
+                this.nodes.forEach(node => node.draw(this.ctx));
+                
+                // Draw all threads
+                this.threads.forEach(thread => thread.draw(this.ctx, this.nodes));
+                
+                // Draw grid lines
+                this.ctx.strokeStyle = '#e0e0e0';
+                this.ctx.lineWidth = 1;
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, 300);
+                this.ctx.lineTo(this.canvas.width, 300);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+            }
+            
+            updateStatus(msg) {
+                document.getElementById('status').innerHTML = `<strong>Status:</strong> ${msg}`;
+            }
+            
+            updateStepInfo(msg) {
+                document.getElementById('stepInfo').textContent = msg;
+            }
+        }
+        
+        // Initialize animation when page loads
+        let animation;
+        
+        window.addEventListener('DOMContentLoaded', function() {
+            try {
+                animation = new HazardPointerAnimation();
+                console.log('Animation initialized successfully');
+            } catch (error) {
+                console.error('Error initializing animation:', error);
+                document.getElementById('status').innerHTML = 
+                    '<strong style="color: red;">Error:</strong> ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>
