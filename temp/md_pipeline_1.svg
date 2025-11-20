@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Market Data Pipeline diagram SVG (colors tweaked)
+     Save this content to market_data_pipeline.svg and open in a browser or editor (Inkscape/Illustrator). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" style="font-family: Arial, Helvetica, sans-serif; background: #fff;">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#24303a" />
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.12"/>
+    </filter>
+    <style>
+      /* Tweaked color palette:
+         - Header: deep slate
+         - Accent / processing stroke: teal
+         - Module accents: warm amber
+         - Cloud accents: soft cyan
+      */
+      .box { fill: #f7fbff; stroke: #0ea5a4; stroke-width: 1.6; rx: 8; ry:8; filter: url(#shadow); }
+      .smallbox { fill: #ffffff; stroke: #9aaedb; stroke-width: 1.2; rx:6; ry:6; }
+      .title { font-weight: 700; font-size: 14px; fill: #044d49; }
+      .label { font-size: 12px; fill: #0f1720; }
+      .sub { font-size: 11px; fill: #334e52; }
+      .module { fill: #fffaf0; stroke: #f59e0b; stroke-width: 1.4; rx:8; ry:8; filter: url(#shadow); }
+      .cloud { fill: #f0feff; stroke: #38bdf8; stroke-dasharray: 6 4; stroke-width: 1.2; rx:18; ry:18; }
+      .connector { stroke: #24303a; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+      .dotted { stroke-dasharray: 6 4; stroke: #9aaedb; }
+    </style>
+  </defs>
+
+  <!-- Header -->
+  <rect x="18" y="12" width="1164" height="64" rx="10" ry="10" fill="#0f1724"/>
+  <text x="38" y="48" font-size="18" fill="#e6f7f6" font-weight="700">Market Data Pipeline — Low-latency Ingress · Normalize · Enrich · Distribute</text>
+  <text x="38" y="66" font-size="11" fill="#bcdfe0">Exchanges → Feed handlers → Sequencer → Normalizer → Orderbook/Analytics → Pub/Sub → Consumers</text>
+
+  <!-- Exchanges group (left column) -->
+  <g>
+    <text x="40" y="110" class="title">Market Sources</text>
+
+    <g transform="translate(40,130)">
+      <rect class="cloud" x="0" y="0" width="210" height="120"/>
+      <text x="14" y="28" class="label">Exchange Gateways</text>
+      <text x="14" y="48" class="sub">- Direct Exchange Feeds (TCP/UDP)</text>
+      <text x="14" y="64" class="sub">- Matching Engine Taps</text>
+      <text x="14" y="80" class="sub">- Consolidated Feeds / Brokers</text>
+
+      <!-- icons for exchanges -->
+      <rect x="12" y="88" width="34" height="20" rx="4" class="smallbox"/>
+      <text x="18" y="102" class="sub">NYSE</text>
+      <rect x="60" y="88" width="34" height="20" rx="4" class="smallbox"/>
+      <text x="66" y="102" class="sub">CME</text>
+      <rect x="108" y="88" width="34" height="20" rx="4" class="smallbox"/>
+      <text x="114" y="102" class="sub">BIN</text>
+      <rect x="156" y="88" width="34" height="20" rx="4" class="smallbox"/>
+      <text x="162" y="102" class="sub">COIN</text>
+    </g>
+  </g>
+
+  <!-- Ingress / Feed handlers -->
+  <g>
+    <text x="280" y="110" class="title">Ingress Layer</text>
+
+    <g transform="translate(260,130)">
+      <rect class="box" x="0" y="0" width="220" height="120"/>
+      <text x="12" y="26" class="label">Feed Handlers / Collectors</text>
+      <text x="12" y="46" class="sub">- Protocol decode (FIX/ITCH/MBP)</text>
+      <text x="12" y="62" class="sub">- Checksum &amp; heartbeat</text>
+      <text x="12" y="78" class="sub">- TLS, auth</text>
+
+      <rect x="12" y="88" width="90" height="18" class="smallbox"/>
+      <text x="18" y="101" class="sub">Receiver</text>
+      <rect x="114" y="88" width="90" height="18" class="smallbox"/>
+      <text x="120" y="101" class="sub">Decoder</text>
+    </g>
+  </g>
+
+  <!-- Pre-processing: dedup, seq, parser -->
+  <g>
+    <text x="540" y="110" class="title">Pre-Processing</text>
+
+    <g transform="translate(520,130)">
+      <rect class="box" x="0" y="0" width="240" height="160"/>
+      <text x="12" y="26" class="label">Sequencer · Deduplicator · Normalizer</text>
+      <text x="12" y="46" class="sub">- Gap detection · reorder repair (seq nos)</text>
+      <text x="12" y="62" class="sub">- Duplicate suppression · watermarking</text>
+      <text x="12" y="78" class="sub">- Message canonicalization (unified schema)</text>
+      <text x="12" y="96" class="sub">- Timestamping (ingest &amp; event time)</text>
+
+      <rect x="12" y="110" width="100" height="28" class="smallbox"/>
+      <text x="18" y="129" class="sub">Sequencer</text>
+      <rect x="124" y="110" width="100" height="28" class="smallbox"/>
+      <text x="130" y="129" class="sub">Normalizer</text>
+    </g>
+  </g>
+
+  <!-- Enrichment and orderbook builders -->
+  <g>
+    <text x="820" y="110" class="title">Enrichment &amp; Builders</text>
+
+    <g transform="translate(780,130)">
+      <rect class="module" x="0" y="0" width="340" height="220"/>
+      <text x="12" y="26" class="label">Enricher · Orderbook / Aggregators</text>
+      <text x="12" y="46" class="sub">- Add reference data (symbols, lot sizes, corporate)</text>
+      <text x="12" y="62" class="sub">- Apply corporate actions / adjustments</text>
+      <text x="12" y="78" class="sub">- Orderbook builder (L1/L2/MBP) · Trades · Imbalances</text>
+      <text x="12" y="96" class="sub">- Snapshot &amp; delta generation</text>
+
+      <rect x="12" y="110" width="150" height="28" class="smallbox"/>
+      <text x="18" y="129" class="sub">Reference Data Cache</text>
+      <rect x="172" y="110" width="150" height="28" class="smallbox"/>
+      <text x="178" y="129" class="sub">Orderbook Builder</text>
+
+      <rect x="12" y="150" width="150" height="28" class="smallbox"/>
+      <text x="18" y="169" class="sub">Aggregator / Time-series</text>
+      <rect x="172" y="150" width="150" height="28" class="smallbox"/>
+      <text x="178" y="169" class="sub">Analytics (VWAP, TWAP, OI)</text>
+
+      <text x="12" y="200" class="sub">Outputs: L1 snapshots, L2 diffs, trades, ticks, analytics</text>
+    </g>
+  </g>
+
+  <!-- Connectors from left to right -->
+  <path class="connector" d="M250 190 L260 190" />
+  <path class="connector" d="M480 190 L520 190" />
+  <path class="connector" d="M760 190 L780 190" />
+
+  <!-- Storage / Pub-Sub / Replay row -->
+  <g>
+    <text x="40" y="320" class="title">Distribution &amp; Storage</text>
+
+    <g transform="translate(38,340)">
+      <rect class="box" x="0" y="0" width="330" height="140"/>
+      <text x="12" y="26" class="label">Message Bus / Persistence</text>
+      <text x="12" y="46" class="sub">- Kafka / Pulsar / Native pub-sub</text>
+      <text x="12" y="62" class="sub">- Topic partitioning by symbol / feed</text>
+      <text x="12" y="78" class="sub">- Durable store for replay &amp; backfill</text>
+
+      <rect x="12" y="100" width="120" height="28" class="smallbox"/>
+      <text x="18" y="119" class="sub">Hot Cache (in-memory)</text>
+      <rect x="144" y="100" width="170" height="28" class="smallbox"/>
+      <text x="150" y="119" class="sub">Historical Store (Parquet/TSDB)</text>
+    </g>
+
+    <!-- Connect to pubsub from enricher -->
+    <path class="connector" d="M1120 260 L1120 340 L372 340" />
+  </g>
+
+  <!-- Consumers -->
+  <g>
+    <text x="420" y="320" class="title">Consumers / Subscribers</text>
+
+    <!-- Left consumer pool -->
+    <g transform="translate(420,340)">
+      <rect class="box" x="0" y="0" width="360" height="140"/>
+      <text x="12" y="26" class="label">Real-time Consumers</text>
+      <text x="12" y="46" class="sub">- Algo Engines / OMS / Execution</text>
+      <text x="12" y="64" class="sub">- Risk / Market surveillance</text>
+      <text x="12" y="82" class="sub">- Market-data cache / web sockets</text>
+      <rect x="12" y="100" width="160" height="28" class="smallbox"/>
+      <text x="18" y="119" class="sub">Algo Engine</text>
+      <rect x="184" y="100" width="160" height="28" class="smallbox"/>
+      <text x="190" y="119" class="sub">Risk Engine</text>
+    </g>
+
+    <!-- Storage & Replay on right -->
+    <g transform="translate(800,340)">
+      <rect class="box" x="0" y="0" width="320" height="140"/>
+      <text x="12" y="26" class="label">Analytics · Persistence · Replay</text>
+      <text x="12" y="46" class="sub">- Historical analytics / backtests</text>
+      <text x="12" y="64" class="sub">- Replay engine (topic consumer, fixed-time)</text>
+      <text x="12" y="82" class="sub">- Cold storage / data lake</text>
+      <rect x="12" y="100" width="140" height="28" class="smallbox"/>
+      <text x="18" y="119" class="sub">Backfill / Replay</text>
+      <rect x="164" y="100" width="140" height="28" class="smallbox"/>
+      <text x="170" y="119" class="sub">Batch analytics</text>
+    </g>
+  </g>
+
+  <!-- Connectors from message bus to consumers -->
+  <path class="connector" d="M368 400 L420 400" />
+  <path class="connector" d="M372 420 L420 420" />
+  <path class="connector" d="M368 460 L420 460" />
+  <path class="connector" d="M368 440 L800 440" />
+
+  <!-- Monitoring, Observability, Control -->
+  <g>
+    <text x="40" y="520" class="title">Monitoring &amp; Control</text>
+    <g transform="translate(38,540)">
+      <rect class="smallbox" x="0" y="0" width="220" height="56" />
+      <text x="12" y="20" class="sub">Metrics · Latency Spans · Alerts</text>
+      <text x="12" y="38" class="sub">Health checks · Circuit breakers</text>
+
+      <rect x="240" y="0" width="220" height="56" class="smallbox"/>
+      <text x="252" y="20" class="sub">Operational Console</text>
+      <text x="252" y="38" class="sub">manual overrides · topology view</text>
+
+      <rect x="480" y="0" width="220" height="56" class="smallbox"/>
+      <text x="492" y="20" class="sub">Audit &amp; Compliance Logs</text>
+      <text x="492" y="38" class="sub">Order/Market event trails</text>
+    </g>
+  </g>
+
+  <!-- Arrows from exchange to ingress (multiple lines) -->
+  <path class="connector" d="M250 180 L320 180" />
+  <path class="connector" d="M480 300 L520 240" />
+  <path class="connector" d="M760 300 L780 270" />
+
+  <!-- Legend -->
+  <g transform="translate(760,560)">
+    <rect x="0" y="0" width="390" height="160" rx="8" ry="8" fill="#fff" stroke="#d1e3ff"/>
+    <text x="12" y="20" class="title" style="font-size:13px">Legend</text>
+    <rect x="12" y="32" width="18" height="14" class="box" />
+    <text x="36" y="44" class="sub">Processing components (stateless/stateful)</text>
+    <rect x="12" y="56" width="18" height="14" class="module" />
+    <text x="36" y="68" class="sub">Enrichment / Builders</text>
+    <rect x="12" y="80" width="18" height="14" class="smallbox"/>
+    <text x="36" y="92" class="sub">Sub-components / functions</text>
+    <path d="M12 110 L36 110" class="connector" />
+    <text x="42" y="114" class="sub">Data flow / low-latency path</text>
+  </g>
+
+  <!-- Footer note -->
+  <text x="40" y="730" class="sub">Notes: partition topics by symbol or feed; maintain ingest clocks (event vs ingest); use hardware time-stamping when latency-critical; replicate critical components for HA.</text>
+
+</svg>

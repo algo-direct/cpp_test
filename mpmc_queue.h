@@ -26,10 +26,6 @@ private:
         ~Cell() {}
     };
 
-    inline Cell & cell_at(size_t i) noexcept {
-        return *reinterpret_cast<Cell*>(&storage_[i]);
-    }
-
     // cap_ and mask_ are compile-time inline static constexpr members (see above)
     // raw aligned storage for Cells; we placement-new Cells into this vector
     std::vector<std::aligned_storage_t<sizeof(Cell), alignof(Cell)>> storage_;
@@ -101,6 +97,10 @@ public:
 
     MPMCQueue(const MPMCQueue&) = delete;
     MPMCQueue& operator=(const MPMCQueue&) = delete;
+
+    inline Cell & cell_at(size_t i) noexcept {
+        return *reinterpret_cast<Cell*>(&storage_[i]);
+    }
 
     // Blocking enqueue: reserve a ticket then wait for the slot to become available.
     void enqueue(const T& item)
